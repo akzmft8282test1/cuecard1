@@ -4,141 +4,56 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>큐카드 등록 (/add)</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --bg-color: #f1f5f9;
-      --card-bg: #ffffff;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --border-color: #e2e8f0;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      padding: 30px 15px;
-      line-height: 1.6;
-    }
-
-    .container {
-      max-width: 680px;
-      margin: 0 auto;
-      background: var(--card-bg);
-      padding: 32px;
-      border-radius: 18px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-    }
-
-    h2 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 6px;
-    }
-
-    p.subtitle {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      margin-bottom: 24px;
-    }
-
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    .form-group label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 6px;
-      font-size: 0.9rem;
-      color: #334155;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      background: #f8fafc;
-      transition: all 0.2s;
-    }
-
-    .form-group input:focus {
-      outline: none;
-      background: #ffffff;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
-
-    .btn {
-      width: 100%;
-      padding: 13px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 10px;
-      transition: background 0.2s;
-    }
-
-    .btn:hover {
-      background: var(--primary-hover);
-    }
+    body { font-family: 'Inter', sans-serif; }
   </style>
 </head>
-<body>
-  <div class="container">
-    <h2>➕ 새 공용 큐카드 등록</h2>
-    <p class="subtitle">양식에 맞춰 작성된 큐카드는 데이터베이스에 안전하게 보관됩니다.</p>
+<body class="bg-slate-100 min-h-screen p-6">
+  <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <h2 class="text-2xl font-bold text-slate-800 mb-2">➕ 새 공용 큐카드 등록</h2>
+    <p class="text-sm text-slate-500 mb-6">등록된 큐카드는 Supabase 데이터베이스에 저장되어 누구나 공유할 수 있습니다.</p>
 
-    <form id="addForm" onsubmit="submitForm(event)">
-      <div class="form-group">
-        <label>📌 큐카드 구분 이름 (예: 세탁기, 스마트폰):</label>
-        <input type="text" id="title" placeholder="예: 세탁기 발표" required>
+    <form id="addForm" onsubmit="submitForm(event)" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">📌 큐카드 구분 이름 (예: 세탁기, 스마트폰):</label>
+        <input type="text" id="title" placeholder="예: 세탁기 발표" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
-      <div class="form-group">
-        <label>1) 발명품 이름 [1]:</label>
-        <input type="text" id="v1" placeholder="예: the washing machine" required>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">1) 발명품 이름 [1]:</label>
+        <input type="text" id="v1" placeholder="예: the washing machine" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
-      <div class="form-group">
-        <label>2) 발명가 [2]:</label>
-        <input type="text" id="v2" placeholder="예: Alva Fisher" required>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">2) 발명가 [2]:</label>
+        <input type="text" id="v2" placeholder="예: Alva Fisher" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
-      <div class="form-group">
-        <label>4) 연도/시기 [4]:</label>
-        <input type="text" id="v4" placeholder="예: 1908" required>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">4) 연도/시기 [4]:</label>
+        <input type="text" id="v4" placeholder="예: 1908" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
-      <div class="form-group">
-        <label>5) 과거의 문제점 (They had to ___) [5]:</label>
-        <input type="text" id="v5" placeholder="예: wash all clothes by hand" required>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">5) 과거의 문제점 (They had to ___) [5]:</label>
+        <input type="text" id="v5" placeholder="예: wash all clothes by hand" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
-      <div class="form-group">
-        <label>6) 안 해도 되는 힘든 일 (We don't have to ___) [6]:</label>
-        <input type="text" id="v6" placeholder="예: do hard laundry work" required>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">6) 안 해도 되는 힘든 일 (We don't have to ___) [6]:</label>
+        <input type="text" id="v6" placeholder="예: do hard laundry work" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
-      <div class="form-group">
-        <label>7) 현재 주요 사용 목적 (usually use it to ___) [7]:</label>
-        <input type="text" id="v7" placeholder="예: wash a lot of clothes quickly" required>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">7) 현재 주요 사용 목적 (usually use it to ___) [7]:</label>
+        <input type="text" id="v7" placeholder="예: wash a lot of clothes quickly" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
-      <button type="submit" class="btn">큐카드 저장 및 공유하기</button>
+      <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow transition-colors mt-4">
+        큐카드 DB에 저장하기
+      </button>
     </form>
   </div>
 
@@ -164,7 +79,7 @@
         });
 
         if (res.ok) {
-          alert('큐카드가 정상적으로 등록되었습니다!');
+          alert('큐카드가 DB에 정상적으로 등록되었습니다!');
           window.location.href = '/';
         } else {
           const err = await res.json();
@@ -172,7 +87,7 @@
         }
       } catch (err) {
         console.error(err);
-        alert('서버 연결 중 오류가 발생했습니다.');
+        alert('서버 연결 중 오류 발생');
       }
     }
   </script>
