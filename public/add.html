@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>큐카드 추가</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 20px 10px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+
+    nav h1 { font-size: 1.4rem; color: var(--text-main); }
+    nav div { display: flex; gap: 10px; }
+
+    .nav-btn {
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .nav-btn.primary { background: var(--primary); color: white; }
+    .nav-btn.primary:hover { background: var(--primary-hover); }
+    .nav-btn.secondary { background: #e2e8f0; color: #334155; }
+    .nav-btn.secondary:hover { background: #cbd5e1; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.95rem; }
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn:hover { background: var(--primary-hover); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav>
+      <h1>🌐 공용 큐카드 발표 연습기</h1>
+      <div>
+        <a href="/" class="nav-btn secondary">연습하기 ( / )</a>
+        <a href="/add" class="nav-btn primary">큐카드 추가 ( /add )</a>
+      </div>
+    </nav>
+
+    <h2>➕ 새 공용 큐카드 추가 (Supabase)</h2>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">양식에 맞춰 값을 작성하면 DB에 보관되어 모든 사람이 공유합니다.</p>
+
+    <form id="addForm" onsubmit="submitForm(event)">
+      <div class="form-group">
+        <label>📌 큐카드 구분 이름:</label>
+        <input type="text" id="title" placeholder="예: 세탁기 발표" required>
+      </div>
+
+      <div class="form-group">
+        <label>1) 발명품 이름 [1]:</label>
+        <input type="text" id="v1" placeholder="예: the washing machine" required>
+      </div>
+
+      <div class="form-group">
+        <label>2) 발명가 [2]:</label>
+        <input type="text" id="v2" placeholder="예: Alva Fisher" required>
+      </div>
+
+      <div class="form-group">
+        <label>4) 연도/시기 [4]:</label>
+        <input type="text" id="v4" placeholder="예: 1908" required>
+      </div>
+
+      <div class="form-group">
+        <label>5) 과거의 문제점 (They had to ___) [5]:</label>
+        <input type="text" id="v5" placeholder="예: wash all clothes by hand" required>
+      </div>
+
+      <div class="form-group">
+        <label>6) 안 해도 되는 힘든 일 (We don't have to ___) [6]:</label>
+        <input type="text" id="v6" placeholder="예: do hard laundry work" required>
+      </div>
+
+      <div class="form-group">
+        <label>7) 현재 주요 사용 목적 (usually use it to ___) [7]:</label>
+        <input type="text" id="v7" placeholder="예: wash a lot of clothes quickly" required>
+      </div>
+
+      <button type="submit" class="btn">DB에 저장하고 공유하기</button>
+    </form>
+  </div>
+
+  <script>
+    async function submitForm(e) {
+      e.preventDefault();
+
+      const payload = {
+        title: document.getElementById('title').value,
+        v1: document.getElementById('v1').value,
+        v2: document.getElementById('v2').value,
+        v4: document.getElementById('v4').value,
+        v5: document.getElementById('v5').value,
+        v6: document.getElementById('v6').value,
+        v7: document.getElementById('v7').value
+      };
+
+      try {
+        const res = await fetch('/api/cuecards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          alert('성공적으로 저장되었습니다!');
+          window.location.href = '/';
+        } else {
+          const err = await res.json();
+          alert('저장 실패: ' + err.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('서버 연결 중 오류 발생');
+      }
+    }
+  </script>
+</body>
+</html>
