@@ -3,82 +3,148 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>큐카드 연습기</title>
+  <title>큐카드 발표 연습기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #3b82f6;
-      --primary-hover: #2563eb;
-      --bg-color: #f8fafc;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg-color: #f1f5f9;
       --card-bg: #ffffff;
-      --text-main: #1e293b;
+      --text-main: #0f172a;
       --text-muted: #64748b;
-      --highlight: #2563eb;
       --border-color: #e2e8f0;
+      --highlight: #2563eb;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-main);
-      padding: 20px 10px;
+      padding: 30px 15px;
       line-height: 1.6;
     }
 
     .container {
-      max-width: 800px;
+      max-width: 840px;
       margin: 0 auto;
       background: var(--card-bg);
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      padding: 32px;
+      border-radius: 18px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
     }
 
-    nav {
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    .control-panel {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .grid-form {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .grid-form { grid-template-columns: 1fr; }
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 0.88rem;
+      color: #334155;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background: white;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid var(--border-color);
+      background: white;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .mode-btn.audio-btn {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+    .mode-btn.audio-btn:hover { background: #059669; }
+
+    .card-item {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-left: 5px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      font-size: 1.05rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 2px solid var(--border-color);
-      padding-bottom: 15px;
-      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
 
-    nav h1 { font-size: 1.4rem; color: var(--text-main); }
-    nav div { display: flex; gap: 10px; }
+    .card-text { flex: 1; margin-right: 12px; }
 
-    .nav-btn {
-      text-decoration: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-    }
-    .nav-btn.primary { background: var(--primary); color: white; }
-    .nav-btn.primary:hover { background: var(--primary-hover); }
-    .nav-btn.secondary { background: #e2e8f0; color: #334155; }
-    .nav-btn.secondary:hover { background: #cbd5e1; }
-
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.95rem; }
-    .form-group input, .form-group select {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 1rem;
-    }
-
-    .card-item {
-      background: #f1f5f9;
-      border-left: 5px solid var(--primary);
-      padding: 14px;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      font-size: 1.05rem;
-    }
-
-    .hl { color: var(--highlight); font-weight: bold; text-decoration: underline; }
+    .hl { color: var(--highlight); font-weight: 700; }
+    
     .blank-box {
       background: #334155;
       color: transparent;
@@ -88,70 +154,71 @@
       user-select: none;
       transition: all 0.2s;
     }
-    .blank-box.revealed { background: transparent; color: var(--highlight); text-decoration: underline; font-weight: bold; }
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
-      background: #f8fafc;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
+    .blank-box.revealed {
+      background: transparent;
+      color: var(--highlight);
+      font-weight: 700;
     }
 
     .flashcard {
-      min-height: 200px;
+      min-height: 220px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       text-align: center;
       border: 2px solid var(--primary);
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: 14px;
+      padding: 28px;
       background: #fff;
-      font-size: 1.25rem;
+      font-size: 1.3rem;
       cursor: pointer;
-      margin-bottom: 15px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
     }
-    .flashcard-num { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 10px; }
 
-    .btn-sm { padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-del { background: #ef4444; color: white; }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-del { background: var(--danger); color: white; }
+    .btn-del:hover { background: var(--danger-hover); }
+    .btn-icon { background: #e2e8f0; color: #334155; }
+    .btn-icon:hover { background: #cbd5e1; }
   </style>
 </head>
 <body>
   <div class="container">
-    <nav>
-      <h1>🌐 공용 큐카드 발표 연습기</h1>
-      <div>
-        <a href="/" class="nav-btn secondary">연습하기 ( / )</a>
-        <a href="/add" class="nav-btn primary">큐카드 추가 ( /add )</a>
-      </div>
-    </nav>
+    <header>
+      <h1>🎤 발명 발표 큐카드 연습기</h1>
+    </header>
 
-    <div style="margin-bottom: 20px;">
-      <div class="form-group">
-        <label for="speakerInput">👤 발표자 이름 [이름]:</label>
-        <input type="text" id="speakerInput" value="Minsoo" onchange="localStorage.setItem('speakerName', this.value); render();">
-      </div>
+    <div class="control-panel">
+      <div class="grid-form">
+        <div class="form-group">
+          <label for="speakerInput">👤 발표자 이름 [이름]:</label>
+          <input type="text" id="speakerInput" value="Minsoo" onchange="localStorage.setItem('speakerName', this.value); render();">
+        </div>
 
-      <div class="form-group">
-        <label for="cardSelect">📚 연습할 공용 큐카드 선택:</label>
-        <div style="display: flex; gap: 10px;">
-          <select id="cardSelect" onchange="loadSelectedCard()" style="flex: 1;"></select>
-          <button onclick="deleteCard()" class="btn-sm btn-del">삭제</button>
+        <div class="form-group">
+          <label for="cardSelect">📚 연습할 큐카드 선택:</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="cardSelect" onchange="loadSelectedCard()" style="flex: 1;"></select>
+            <button onclick="deleteCard()" class="btn-sm btn-del">삭제</button>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="toolbar">
-      <button onclick="setMode('list')" class="nav-btn primary">전체 대본 모드</button>
-      <button onclick="setMode('slide')" class="nav-btn secondary">슬라이드 모드</button>
-      <button onclick="setMode('blank')" class="nav-btn secondary">빈칸 암기 모드</button>
-      <button onclick="speakAll()" class="nav-btn secondary" style="background:#10b981; color:white;">🔊 전체 오디오 듣기</button>
+      <button onclick="setMode('list')" id="btn-list" class="mode-btn active">전체 대본 모드</button>
+      <button onclick="setMode('slide')" id="btn-slide" class="mode-btn">슬라이드 모드</button>
+      <button onclick="setMode('blank')" id="btn-blank" class="mode-btn">빈칸 암기 모드</button>
+      <button onclick="speakAll()" class="mode-btn audio-btn">🔊 전체 듣기</button>
     </div>
 
     <div id="contentArea"></div>
@@ -168,7 +235,6 @@
       if (savedName) {
         document.getElementById('speakerInput').value = savedName;
       }
-
       await fetchCards();
     });
 
@@ -181,7 +247,7 @@
         select.innerHTML = '';
 
         if (cards.length === 0) {
-          select.innerHTML = '<option value="">(DB에 등록된 큐카드가 없습니다)</option>';
+          select.innerHTML = '<option value="">(등록된 큐카드가 없습니다. /add 주소로 추가하세요)</option>';
           activeCard = null;
         } else {
           cards.forEach((card, index) => {
@@ -213,8 +279,6 @@
           if (res.ok) {
             alert('삭제되었습니다.');
             await fetchCards();
-          } else {
-            alert('삭제 실패');
           }
         } catch (err) {
           console.error(err);
@@ -224,6 +288,8 @@
 
     function setMode(mode) {
       currentMode = mode;
+      document.querySelectorAll('.toolbar .mode-btn:not(.audio-btn)').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`btn-${mode}`).classList.add('active');
       render();
     }
 
@@ -263,7 +329,7 @@
     function render() {
       const area = document.getElementById('contentArea');
       if (!activeCard) {
-        area.innerHTML = '<p style="text-align:center; padding:30px;">등록된 큐카드가 없습니다. 상단 [큐카드 추가] 버튼을 눌러주세요.</p>';
+        area.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-muted);">등록된 큐카드가 없습니다.<br>웹 브라우저 주소창에 <strong>/add</strong> 를 입력하여 큐카드를 추가해보세요.</p>';
         return;
       }
 
@@ -273,8 +339,8 @@
       if (currentMode === 'list') {
         area.innerHTML = lines.map(l => `
           <div class="card-item">
-            <strong>${l.num})</strong> ${l.en}
-            <button onclick="speakText('${l.text.replace(/'/g, "\\'")}')" style="margin-left:8px; cursor:pointer;">🔊</button>
+            <div class="card-text"><strong>${l.num})</strong> ${l.en}</div>
+            <button onclick="speakText('${l.text.replace(/'/g, "\\'")}')" class="btn-sm btn-icon">🔊</button>
           </div>
         `).join('');
       } 
@@ -282,13 +348,13 @@
         const l = lines[currentCardIndex];
         area.innerHTML = `
           <div class="flashcard" onclick="speakText('${l.text.replace(/'/g, "\\'")}')">
-            <div class="flashcard-num">Card ${currentCardIndex + 1} / ${lines.length} (${l.num}번 문장)</div>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px; font-weight:600;">Card ${currentCardIndex + 1} / ${lines.length} (${l.num}번 문장)</div>
             <div>${l.en}</div>
-            <div style="font-size:0.8rem; color:#94a3b8; margin-top:15px;">(클릭시 발음 듣기)</div>
+            <div style="font-size:0.8rem; color:#a1a1aa; margin-top:16px;">(클릭하여 발음 듣기)</div>
           </div>
-          <div style="display:flex; justify-content:space-between;">
-            <button onclick="prevSlide()" class="nav-btn secondary" ${currentCardIndex === 0 ? 'disabled' : ''}>이전</button>
-            <button onclick="nextSlide()" class="nav-btn primary" ${currentCardIndex === lines.length - 1 ? 'disabled' : ''}>다음</button>
+          <div style="display:flex; justify-content:space-between; gap:10px;">
+            <button onclick="prevSlide()" class="mode-btn" ${currentCardIndex === 0 ? 'disabled style="opacity:0.5"' : ''}>이전</button>
+            <button onclick="nextSlide()" class="mode-btn active" ${currentCardIndex === lines.length - 1 ? 'disabled style="opacity:0.5"' : ''}>다음</button>
           </div>
         `;
       }
@@ -305,7 +371,7 @@
 
           return `
             <div class="card-item">
-              <strong>${l.num})</strong> ${html}
+              <div class="card-text"><strong>${l.num})</strong> ${html}</div>
             </div>
           `;
         }).join('');
