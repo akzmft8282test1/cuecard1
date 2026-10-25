@@ -3,282 +3,299 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>큐카드 발표 연습기</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>영어 발표 큐카드 암기 연습기</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --bg-color: #f1f5f9;
-      --card-bg: #ffffff;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --border-color: #e2e8f0;
-      --highlight: #2563eb;
-      --danger: #ef4444;
-      --danger-hover: #dc2626;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      padding: 30px 15px;
-      line-height: 1.6;
+      font-family: 'Inter', 'Noto Sans KR', sans-serif;
     }
-
-    .container {
-      max-width: 840px;
-      margin: 0 auto;
-      background: var(--card-bg);
-      padding: 32px;
-      border-radius: 18px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    .card-flip-container {
+      perspective: 1000px;
     }
-
-    header {
-      text-align: center;
-      margin-bottom: 28px;
+    .card-flip-inner {
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
     }
-
-    header h1 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--text-main);
-      letter-spacing: -0.02em;
+    .card-flipped .card-flip-inner {
+      transform: rotateY(180deg);
     }
-
-    .control-panel {
-      background: #f8fafc;
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 24px;
+    .card-front, .card-back {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
-
-    .grid-form {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: 16px;
+    .card-back {
+      transform: rotateY(180deg);
     }
-
-    @media (max-width: 640px) {
-      .grid-form { grid-template-columns: 1fr; }
-    }
-
-    .form-group label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 6px;
-      font-size: 0.88rem;
-      color: #334155;
-    }
-
-    .form-group input, .form-group select {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      background: white;
-      transition: all 0.2s;
-    }
-
-    .form-group input:focus, .form-group select:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-
-    .mode-btn {
-      flex: 1;
-      min-width: 120px;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      border: 1px solid var(--border-color);
-      background: white;
-      color: #475569;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .mode-btn.active {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
-
-    .mode-btn.audio-btn {
-      background: #10b981;
-      color: white;
-      border-color: #10b981;
-    }
-    .mode-btn.audio-btn:hover { background: #059669; }
-
-    .card-item {
-      background: #ffffff;
-      border: 1px solid var(--border-color);
-      border-left: 5px solid var(--primary);
-      padding: 16px 20px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      font-size: 1.05rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-
-    .card-text { flex: 1; margin-right: 12px; }
-
-    .hl { color: var(--highlight); font-weight: 700; }
-    
-    .blank-box {
-      background: #334155;
-      color: transparent;
-      border-radius: 4px;
-      padding: 2px 8px;
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.2s;
-    }
-    .blank-box.revealed {
-      background: transparent;
-      color: var(--highlight);
-      font-weight: 700;
-    }
-
-    .flashcard {
-      min-height: 220px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      border: 2px solid var(--primary);
-      border-radius: 14px;
-      padding: 28px;
-      background: #fff;
-      font-size: 1.3rem;
-      cursor: pointer;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
-    }
-
-    .btn-sm {
-      padding: 6px 12px;
-      font-size: 0.85rem;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .btn-del { background: var(--danger); color: white; }
-    .btn-del:hover { background: var(--danger-hover); }
-    .btn-icon { background: #e2e8f0; color: #334155; }
-    .btn-icon:hover { background: #cbd5e1; }
   </style>
 </head>
-<body>
-  <div class="container">
-    <header>
-      <h1>🎤 발명 발표 큐카드 연습기</h1>
-    </header>
+<body class="bg-slate-100 min-h-screen text-slate-800 pb-12">
 
-    <div class="control-panel">
-      <div class="grid-form">
-        <div class="form-group">
-          <label for="speakerInput">👤 발표자 이름 [이름]:</label>
-          <input type="text" id="speakerInput" value="Minsoo" onchange="localStorage.setItem('speakerName', this.value); render();">
+  <!-- Header Section -->
+  <header class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="bg-white/20 p-2.5 rounded-xl backdrop-blur-md">
+          <i class="fa-solid fa-graduation-cap text-2xl text-yellow-300"></i>
         </div>
-
-        <div class="form-group">
-          <label for="cardSelect">📚 연습할 큐카드 선택:</label>
-          <div style="display: flex; gap: 8px;">
-            <select id="cardSelect" onchange="loadSelectedCard()" style="flex: 1;"></select>
-            <button onclick="deleteCard()" class="btn-sm btn-del">삭제</button>
-          </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight">영어 발표 큐카드 암기 연습기</h1>
+          <p class="text-xs sm:text-sm text-blue-100">Speech & Presentation Memorization Studio</p>
         </div>
       </div>
+      
+      <!-- DB Cue Card Select Dropdown -->
+      <div class="flex items-center space-x-2 bg-white/10 p-1.5 rounded-xl border border-white/20 w-full sm:w-auto justify-between">
+        <span class="text-xs font-semibold px-2 text-blue-100 flex items-center gap-1">
+          <i class="fa-solid fa-database"></i> 큐카드 선택:
+        </span>
+        <select id="dbCardSelect" onchange="loadCardFromDB(this.value)" class="bg-white text-slate-800 text-sm font-medium rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-yellow-400 cursor-pointer shadow-sm">
+          <option value="">불러오는 중...</option>
+        </select>
+        <button onclick="deleteCurrentCard()" class="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors">
+          삭제
+        </button>
+      </div>
     </div>
+  </header>
 
-    <div class="toolbar">
-      <button onclick="setMode('list')" id="btn-list" class="mode-btn active">전체 대본 모드</button>
-      <button onclick="setMode('slide')" id="btn-slide" class="mode-btn">슬라이드 모드</button>
-      <button onclick="setMode('blank')" id="btn-blank" class="mode-btn">빈칸 암기 모드</button>
-      <button onclick="speakAll()" class="mode-btn audio-btn">🔊 전체 듣기</button>
-    </div>
+  <main class="max-w-6xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-    <div id="contentArea"></div>
-  </div>
+    <!-- LEFT PANEL: Inputs Control -->
+    <section class="lg:col-span-4 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h2 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-indigo-500"></i> 발표 내용 설정
+        </h2>
+      </div>
+
+      <form id="cuecardForm" onsubmit="event.preventDefault(); updateCards();" class="space-y-3.5 text-sm">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">내 이름 [이름]</label>
+          <input type="text" id="userName" value="Minsoo" onchange="localStorage.setItem('speakerName', this.value); updateCards();" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" placeholder="예: Minsoo">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">1) 발명품 이름 [1]</label>
+          <input type="text" id="inv1" value="the washing machine" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">2) 발명가 [2]</label>
+          <input type="text" id="inv2" value="Alva Fisher" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">3) 만든 연도/시기 [4]</label>
+          <input type="text" id="inv4" value="1908" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">4) 과거의 문제 행동 [5]</label>
+          <input type="text" id="inv5" value="wash all clothes by hand" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">5) 더 이상 안 해도 되는 일 [6]</label>
+          <input type="text" id="inv6" value="do hard laundry work" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">6) 현재 주요 사용 목적 [7]</label>
+          <input type="text" id="inv7" value="wash a lot of clothes quickly" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm">
+        </div>
+
+        <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-arrows-rotate"></i> 화면 새로고침
+        </button>
+      </form>
+    </section>
+
+    <!-- RIGHT PANEL: Practice Modes & Cue Cards -->
+    <section class="lg:col-span-8 flex flex-col space-y-4">
+
+      <!-- View Mode Tabs -->
+      <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200/80 flex flex-wrap gap-2 justify-between items-center">
+        <div class="flex space-x-1 w-full sm:w-auto">
+          <button id="btnTabSlide" onclick="switchMode('slide')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-sm">
+            <i class="fa-solid fa-copy"></i> 플래시카드 모드
+          </button>
+          <button id="btnTabList" onclick="switchMode('list')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-list-ol"></i> 전체 리스트
+          </button>
+          <button id="btnTabBlank" onclick="switchMode('blank')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-eye-slash"></i> 빈칸 암기 테스트
+          </button>
+        </div>
+
+        <button onclick="speakAll()" id="btnSpeakAll" class="w-full sm:w-auto px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-all border border-emerald-200 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-volume-high text-emerald-600"></i> 전체 연속 듣기
+        </button>
+      </div>
+
+      <!-- MODE 1: SINGLE FLASHCARD / SLIDE VIEW -->
+      <div id="viewSlide" class="flex-1 flex flex-col justify-between space-y-4">
+        
+        <div id="flashcardContainer" onclick="flipCard()" class="card-flip-container relative w-full h-80 sm:h-96 cursor-pointer group">
+          <div id="cardFlipInner" class="card-flip-inner absolute w-full h-full rounded-2xl shadow-lg border border-slate-200/80 bg-white">
+            
+            <!-- Front Side -->
+            <div class="card-front absolute inset-0 p-6 sm:p-8 flex flex-col justify-between rounded-2xl bg-gradient-to-br from-white via-slate-50 to-indigo-50/30">
+              <div class="flex justify-between items-center border-b border-slate-200/60 pb-3">
+                <span id="slideCardNum" class="text-xs sm:text-sm font-extrabold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full border border-indigo-200">
+                  CARD 1 / 13
+                </span>
+                <span class="text-xs text-slate-400 group-hover:text-indigo-500 transition-colors flex items-center gap-1">
+                  <i class="fa-solid fa-rotate"></i> 클릭하여 한글 해석 보기
+                </span>
+              </div>
+
+              <div class="my-auto text-center px-2">
+                <p id="slideCardText" class="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-800 leading-relaxed tracking-tight"></p>
+              </div>
+
+              <div class="flex justify-between items-center border-t border-slate-200/60 pt-3">
+                <button onclick="event.stopPropagation(); speakCurrentCard();" class="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl font-bold text-xs transition-colors flex items-center gap-2">
+                  <i class="fa-solid fa-volume-high text-base"></i> 발음 듣기
+                </button>
+                <span id="slideKeyHint" class="text-xs font-semibold text-slate-500 bg-slate-200/60 px-2.5 py-1 rounded-md"></span>
+              </div>
+            </div>
+
+            <!-- Back Side -->
+            <div class="card-back absolute inset-0 p-6 sm:p-8 flex flex-col justify-between rounded-2xl bg-gradient-to-br from-indigo-900 to-slate-900 text-white">
+              <div class="flex justify-between items-center border-b border-indigo-700/50 pb-3">
+                <span class="text-xs sm:text-sm font-bold text-indigo-300">
+                  <i class="fa-solid fa-language"></i> 한글 뜻 및 가이드
+                </span>
+                <span class="text-xs text-indigo-300/80 flex items-center gap-1">
+                  <i class="fa-solid fa-rotate"></i> 다시 클릭하여 원래대로
+                </span>
+              </div>
+
+              <div class="my-auto text-center px-2">
+                <p id="slideCardKor" class="text-lg sm:text-xl font-bold text-indigo-100 leading-relaxed"></p>
+              </div>
+
+              <div class="text-right border-t border-indigo-700/50 pt-3 text-xs text-indigo-300">
+                키보드 <kbd class="px-1.5 py-0.5 bg-indigo-800 rounded border border-indigo-600">←</kbd> <kbd class="px-1.5 py-0.5 bg-indigo-800 rounded border border-indigo-600">→</kbd> 방향키로 이동 가능
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="flex justify-between items-center bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm">
+          <button onclick="prevCard()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all flex items-center gap-2">
+            <i class="fa-solid fa-chevron-left"></i> 이전 Card
+          </button>
+          
+          <div class="text-xs sm:text-sm font-bold text-slate-500">
+            <span id="currentCardIndex" class="text-indigo-600 font-extrabold text-base">1</span> / 13
+          </div>
+
+          <button onclick="nextCard()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-2">
+            다음 Card <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- MODE 2: FULL LIST VIEW -->
+      <div id="viewList" class="hidden space-y-3">
+        <div class="bg-indigo-50 border border-indigo-100 text-indigo-900 px-4 py-3 rounded-xl text-xs sm:text-sm font-medium flex items-center justify-between">
+          <span><i class="fa-solid fa-circle-info text-indigo-500 mr-1"></i> 전체 13개 발표 문장을 순서대로 한눈에 확인할 수 있습니다.</span>
+          <button onclick="window.print()" class="text-xs bg-white text-indigo-600 font-bold px-2.5 py-1 rounded-lg border border-indigo-200 shadow-sm hover:bg-indigo-50 transition-colors">
+            <i class="fa-solid fa-print"></i> 인쇄 / PDF
+          </button>
+        </div>
+        <div id="fullListContainer" class="space-y-3"></div>
+      </div>
+
+      <!-- MODE 3: BLANK PRACTICE -->
+      <div id="viewBlank" class="hidden space-y-3">
+        <div class="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl text-xs sm:text-sm font-medium flex justify-between items-center">
+          <span><i class="fa-solid fa-lightbulb text-amber-600 mr-1"></i> 가려진 <strong>블라인드 부분</strong>을 클릭하면 정답이 나타납니다!</span>
+          <button onclick="toggleAllBlanks()" class="text-xs bg-white text-amber-800 font-bold px-2.5 py-1 rounded-lg border border-amber-300 shadow-sm hover:bg-amber-100 transition-colors">
+            <i class="fa-solid fa-eye"></i> 전체 정답 보기/숨기기
+          </button>
+        </div>
+        <div id="blankListContainer" class="space-y-3"></div>
+      </div>
+
+    </section>
+
+  </main>
 
   <script>
-    let cards = [];
-    let activeCard = null;
-    let currentMode = 'list';
+    let dbCardsList = [];
+    let activeCardData = null;
     let currentCardIndex = 0;
+    let isFlipped = false;
+    let hideAllBlanksState = true;
+    const synth = window.speechSynthesis;
 
-    document.addEventListener('DOMContentLoaded', async () => {
+    window.onload = async function() {
       const savedName = localStorage.getItem('speakerName');
       if (savedName) {
-        document.getElementById('speakerInput').value = savedName;
+        document.getElementById('userName').value = savedName;
       }
-      await fetchCards();
-    });
+      await fetchDBCards();
+    };
 
-    async function fetchCards() {
+    async function fetchDBCards() {
       try {
         const res = await fetch('/api/cuecards');
-        cards = await res.json();
+        dbCardsList = await res.json();
 
-        const select = document.getElementById('cardSelect');
+        const select = document.getElementById('dbCardSelect');
         select.innerHTML = '';
 
-        if (cards.length === 0) {
-          select.innerHTML = '<option value="">(등록된 큐카드가 없습니다. /add 주소로 추가하세요)</option>';
-          activeCard = null;
+        if (dbCardsList.length === 0) {
+          select.innerHTML = '<option value="">(등록된 큐카드가 없습니다. /add 에서 등록하세요)</option>';
+          activeCardData = null;
         } else {
-          cards.forEach((card, index) => {
+          dbCardsList.forEach((card, index) => {
             const opt = document.createElement('option');
             opt.value = index;
             opt.textContent = card.title;
             select.appendChild(opt);
           });
-          activeCard = cards[0];
+          loadCardFromDB(0);
         }
-        render();
       } catch (err) {
         console.error('Error fetching cards:', err);
       }
     }
 
-    function loadSelectedCard() {
-      const idx = document.getElementById('cardSelect').value;
-      activeCard = cards[idx];
+    function loadCardFromDB(index) {
+      if (dbCardsList.length === 0) return;
+      activeCardData = dbCardsList[index];
+
+      document.getElementById('inv1').value = activeCardData.v1;
+      document.getElementById('inv2').value = activeCardData.v2;
+      document.getElementById('inv4').value = activeCardData.v4;
+      document.getElementById('inv5').value = activeCardData.v5;
+      document.getElementById('inv6').value = activeCardData.v6;
+      document.getElementById('inv7').value = activeCardData.v7;
+
       currentCardIndex = 0;
-      render();
+      updateCards();
     }
 
-    async function deleteCard() {
-      if (!activeCard) return;
-      if (confirm(`"${activeCard.title}" 큐카드를 삭제하시겠습니까?`)) {
+    async function deleteCurrentCard() {
+      if (!activeCardData) return;
+      if (confirm(`"${activeCardData.title}" 큐카드를 삭제하시겠습니까?`)) {
         try {
-          const res = await fetch(`/api/cuecards/${activeCard.id}`, { method: 'DELETE' });
+          const res = await fetch(`/api/cuecards/${activeCardData.id}`, { method: 'DELETE' });
           if (res.ok) {
             alert('삭제되었습니다.');
-            await fetchCards();
+            await fetchDBCards();
           }
         } catch (err) {
           console.error(err);
@@ -286,100 +303,183 @@
       }
     }
 
-    function setMode(mode) {
-      currentMode = mode;
-      document.querySelectorAll('.toolbar .mode-btn:not(.audio-btn)').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(`btn-${mode}`).classList.add('active');
-      render();
-    }
+    function getCardData() {
+      const name = document.getElementById('userName').value.trim() || '[이름]';
+      const inv1 = document.getElementById('inv1').value.trim() || '[1]';
+      const inv2 = document.getElementById('inv2').value.trim() || '[2]';
+      const inv4 = document.getElementById('inv4').value.trim() || '[4]';
+      const inv5 = document.getElementById('inv5').value.trim() || '[5]';
+      const inv6 = document.getElementById('inv6').value.trim() || '[6]';
+      const inv7 = document.getElementById('inv7').value.trim() || '[7]';
 
-    function getLines(card, name) {
-      if (!card) return [];
       return [
-        { num: "1", en: `Hello, my name is <span class="hl">${name}</span>.`, text: `Hello, my name is ${name}.` },
-        { num: "2", en: `Today, I want to introduce a great invention, <span class="hl">${card.v1}</span>.`, text: `Today, I want to introduce a great invention, ${card.v1}.` },
-        { num: "3", en: `It was invented by <span class="hl">${card.v2}</span> in America.`, text: `It was invented by ${card.v2} in America.` },
-        { num: "4", en: `Long ago, it was made in <span class="hl">${card.v4}</span>.`, text: `Long ago, it was made in ${card.v4}.` },
-        { num: "5", en: `Before this invention, people had a big problem.`, text: `Before this invention, people had a big problem.` },
-        { num: "6", en: `They had to <span class="hl">${card.v5}</span>.`, text: `They had to ${card.v5}.` },
-        { num: "7", en: `It was very uncomfortable.`, text: `It was very uncomfortable.` },
-        { num: "8", en: `But now, thanks to this invention, our lives are different.`, text: `But now, thanks to this invention, our lives are different.` },
-        { num: "9", en: `We don't have to <span class="hl">${card.v6}</span> anymore.`, text: `We don't have to ${card.v6} anymore.` },
-        { num: "10", en: `Today, people usually use it to <span class="hl">${card.v7}</span>.`, text: `Today, people usually use it to ${card.v7}.` },
-        { num: "11", en: `This invention makes our lives so convenient.`, text: `This invention makes our lives so convenient.` },
-        { num: "11-1", en: `It saves us so much time and energy every day.`, text: `It saves us so much time and energy every day.` },
-        { num: "12", en: `Thank you for listening to my speech.`, text: `Thank you for listening to my speech.` }
+        { num: "1", eng: `Hello, my name is <span class="text-indigo-600 font-bold underline">${name}</span>.`, plainEng: `Hello, my name is ${name}.`, kor: `안녕하세요, 제 이름은 ${name}입니다.`, variable: name, hint: "[이름]" },
+        { num: "2", eng: `Today, I want to introduce a great invention, <span class="text-indigo-600 font-bold underline">${inv1}</span>.`, plainEng: `Today, I want to introduce a great invention, ${inv1}.`, kor: `오늘 저는 위대한 발명품인 ${inv1}을(를) 소개하고자 합니다.`, variable: inv1, hint: "[1] 발명품" },
+        { num: "3", eng: `It was invented by <span class="text-indigo-600 font-bold underline">${inv2}</span> in America.`, plainEng: `It was invented by ${inv2} in America.`, kor: `이것은 미국의 ${inv2}에 의해 발명되었습니다.`, variable: inv2, hint: "[2] 발명가" },
+        { num: "4", eng: `Long ago, it was made in <span class="text-indigo-600 font-bold underline">${inv4}</span>.`, plainEng: `Long ago, it was made in ${inv4}.`, kor: `오래전, 이것은 ${inv4}년에 만들어졌습니다.`, variable: inv4, hint: "[4] 연도/시기" },
+        { num: "5", eng: `Before this invention, people had a big problem.`, plainEng: `Before this invention, people had a big problem.`, kor: `이 발명품이 있기 전, 사람들에게는 큰 문제가 있었습니다.`, variable: null, hint: "배경 문제" },
+        { num: "6", eng: `They had to <span class="text-indigo-600 font-bold underline">${inv5}</span>.`, plainEng: `They had to ${inv5}.`, kor: `사람들은 ${inv5} 해야만 했습니다.`, variable: inv5, hint: "[5] 과거의 문제행동" },
+        { num: "7", eng: `It was very uncomfortable.`, plainEng: `It was very uncomfortable.`, kor: `그것은 매우 불편했습니다.`, variable: null, hint: "과거의 불편함" },
+        { num: "8", eng: `But now, thanks to this invention, our lives are different.`, plainEng: `But now, thanks to this invention, our lives are different.`, kor: `하지만 이제 이 발명품 덕분에 우리의 삶은 달라졌습니다.`, variable: null, hint: "변화의 시작" },
+        { num: "9", eng: `We don't have to <span class="text-indigo-600 font-bold underline">${inv6}</span> anymore.`, plainEng: `We don't have to ${inv6} anymore.`, kor: `우리는 더 이상 ${inv6} 할 필요가 없습니다.`, variable: inv6, hint: "[6] 힘들었던 일" },
+        { num: "10", eng: `Today, people usually use it to <span class="text-indigo-600 font-bold underline">${inv7}</span>.`, plainEng: `Today, people usually use it to ${inv7}.`, kor: `오늘날 사람들은 주로 ${inv7} 하기 위해 이것을 사용합니다.`, variable: inv7, hint: "[7] 현재 사용 목적" },
+        { num: "11", eng: `This invention makes our lives so convenient.`, plainEng: `This invention makes our lives so convenient.`, kor: `이 발명품은 우리의 삶을 매우 편리하게 만들어 줍니다.`, variable: null, hint: "편리함 강조" },
+        { num: "11-1", eng: `It saves us so much time and energy every day.`, plainEng: `It saves us so much time and energy every day.`, kor: `이것은 매일 우리의 시간과 에너지를 크게 아껴줍니다.`, variable: null, hint: "핵심 가치" },
+        { num: "12", eng: `Thank you for listening to my speech.`, plainEng: `Thank you for listening to my speech.`, kor: `제 발표를 들어주셔서 감사합니다.`, variable: null, hint: "마무리 인사" }
       ];
     }
 
+    function updateCards() {
+      renderSlideCard();
+      renderFullList();
+      renderBlankList();
+    }
+
+    function renderSlideCard() {
+      const cards = getCardData();
+      const card = cards[currentCardIndex];
+
+      document.getElementById('slideCardNum').innerText = `CARD ${card.num} / 12 (전체 13장)`;
+      document.getElementById('slideCardText').innerHTML = card.eng;
+      document.getElementById('slideCardKor').innerText = card.kor;
+      document.getElementById('slideKeyHint').innerText = card.hint;
+      document.getElementById('currentCardIndex').innerText = currentCardIndex + 1;
+
+      const cardContainer = document.getElementById('flashcardContainer');
+      cardContainer.classList.remove('card-flipped');
+      isFlipped = false;
+    }
+
+    function flipCard() {
+      const cardContainer = document.getElementById('flashcardContainer');
+      isFlipped = !isFlipped;
+      if (isFlipped) cardContainer.classList.add('card-flipped');
+      else cardContainer.classList.remove('card-flipped');
+    }
+
+    function prevCard() {
+      if (currentCardIndex > 0) { currentCardIndex--; renderSlideCard(); }
+    }
+
+    function nextCard() {
+      const cards = getCardData();
+      if (currentCardIndex < cards.length - 1) { currentCardIndex++; renderSlideCard(); }
+    }
+
+    function renderFullList() {
+      const cards = getCardData();
+      const container = document.getElementById('fullListContainer');
+      container.innerHTML = '';
+
+      cards.forEach((card) => {
+        const item = document.createElement('div');
+        item.className = "bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3";
+        item.innerHTML = `
+          <div class="flex items-start space-x-3 w-full">
+            <span class="bg-indigo-100 text-indigo-700 font-extrabold text-xs px-2.5 py-1 rounded-lg border border-indigo-200 shrink-0">${card.num}</span>
+            <div class="space-y-1 flex-1">
+              <p class="text-base sm:text-lg font-bold text-slate-800">${card.eng}</p>
+              <p class="text-xs sm:text-sm text-slate-500">${card.kor}</p>
+            </div>
+          </div>
+          <button onclick="speakText('${card.plainEng.replace(/'/g, "\\'")}')" class="p-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 rounded-lg text-xs font-semibold shrink-0">🔊 듣기</button>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function renderBlankList() {
+      const cards = getCardData();
+      const container = document.getElementById('blankListContainer');
+      container.innerHTML = '';
+
+      cards.forEach((card) => {
+        let blankEng = card.plainEng;
+
+        if (card.variable) {
+          const hiddenSpan = `<span onclick="this.classList.toggle('bg-slate-800'); this.classList.toggle('text-transparent');" class="bg-slate-800 text-transparent font-bold px-2 py-0.5 rounded cursor-pointer select-none inline-block my-0.5">${card.variable}</span>`;
+          blankEng = card.plainEng.replace(card.variable, hiddenSpan);
+        } else {
+          const hiddenSpan = `<span onclick="this.classList.toggle('bg-slate-800'); this.classList.toggle('text-transparent');" class="bg-slate-800 text-transparent font-bold px-2 py-0.5 rounded cursor-pointer select-none inline-block my-0.5">${card.plainEng}</span>`;
+          blankEng = hiddenSpan;
+        }
+
+        const item = document.createElement('div');
+        item.className = "bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col space-y-2";
+        item.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="bg-amber-100 text-amber-800 font-extrabold text-xs px-2.5 py-1 rounded-lg">카드 ${card.num}</span>
+            <span class="text-xs text-slate-400 font-medium">${card.hint}</span>
+          </div>
+          <p class="text-base sm:text-lg font-semibold text-slate-800 leading-relaxed">${blankEng}</p>
+          <p class="text-xs text-slate-400 border-t border-slate-100 pt-2"><i class="fa-solid fa-language"></i> ${card.kor}</p>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function toggleAllBlanks() {
+      const blanks = document.querySelectorAll('#blankListContainer span.cursor-pointer');
+      hideAllBlanksState = !hideAllBlanksState;
+      blanks.forEach(el => {
+        if (hideAllBlanksState) el.classList.add('bg-slate-800', 'text-transparent');
+        else el.classList.remove('bg-slate-800', 'text-transparent');
+      });
+    }
+
+    function switchMode(mode) {
+      document.getElementById('viewSlide').classList.add('hidden');
+      document.getElementById('viewList').classList.add('hidden');
+      document.getElementById('viewBlank').classList.add('hidden');
+
+      document.getElementById('btnTabSlide').className = "flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100";
+      document.getElementById('btnTabList').className = "flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100";
+      document.getElementById('btnTabBlank').className = "flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100";
+
+      if (mode === 'slide') {
+        document.getElementById('viewSlide').classList.remove('hidden');
+        document.getElementById('btnTabSlide').className = "flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white shadow-sm";
+      } else if (mode === 'list') {
+        document.getElementById('viewList').classList.remove('hidden');
+        document.getElementById('btnTabList').className = "flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white shadow-sm";
+      } else if (mode === 'blank') {
+        document.getElementById('viewBlank').classList.remove('hidden');
+        document.getElementById('btnTabBlank').className = "flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white shadow-sm";
+      }
+    }
+
     function speakText(text) {
-      window.speechSynthesis.cancel();
+      synth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
-      window.speechSynthesis.speak(utterance);
+      utterance.rate = 0.9;
+      synth.speak(utterance);
+    }
+
+    function speakCurrentCard() {
+      const cards = getCardData();
+      speakText(cards[currentCardIndex].plainEng);
     }
 
     function speakAll() {
-      if (!activeCard) return;
-      const name = document.getElementById('speakerInput').value || 'Minsoo';
-      const lines = getLines(activeCard, name);
-      speakText(lines.map(l => l.text).join(' '));
+      synth.cancel();
+      getCardData().forEach(card => {
+        const utterance = new SpeechSynthesisUtterance(card.plainEng);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        synth.speak(utterance);
+      });
     }
 
-    function render() {
-      const area = document.getElementById('contentArea');
-      if (!activeCard) {
-        area.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-muted);">등록된 큐카드가 없습니다.<br>웹 브라우저 주소창에 <strong>/add</strong> 를 입력하여 큐카드를 추가해보세요.</p>';
-        return;
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('viewSlide').classList.contains('hidden')) return;
+      if (e.key === 'ArrowLeft') prevCard();
+      else if (e.key === 'ArrowRight') nextCard();
+      else if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        flipCard();
       }
-
-      const name = document.getElementById('speakerInput').value || 'Minsoo';
-      const lines = getLines(activeCard, name);
-
-      if (currentMode === 'list') {
-        area.innerHTML = lines.map(l => `
-          <div class="card-item">
-            <div class="card-text"><strong>${l.num})</strong> ${l.en}</div>
-            <button onclick="speakText('${l.text.replace(/'/g, "\\'")}')" class="btn-sm btn-icon">🔊</button>
-          </div>
-        `).join('');
-      } 
-      else if (currentMode === 'slide') {
-        const l = lines[currentCardIndex];
-        area.innerHTML = `
-          <div class="flashcard" onclick="speakText('${l.text.replace(/'/g, "\\'")}')">
-            <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px; font-weight:600;">Card ${currentCardIndex + 1} / ${lines.length} (${l.num}번 문장)</div>
-            <div>${l.en}</div>
-            <div style="font-size:0.8rem; color:#a1a1aa; margin-top:16px;">(클릭하여 발음 듣기)</div>
-          </div>
-          <div style="display:flex; justify-content:space-between; gap:10px;">
-            <button onclick="prevSlide()" class="mode-btn" ${currentCardIndex === 0 ? 'disabled style="opacity:0.5"' : ''}>이전</button>
-            <button onclick="nextSlide()" class="mode-btn active" ${currentCardIndex === lines.length - 1 ? 'disabled style="opacity:0.5"' : ''}>다음</button>
-          </div>
-        `;
-      }
-      else if (currentMode === 'blank') {
-        area.innerHTML = lines.map(l => {
-          let html = l.en
-            .replace(name, `<span class="blank-box" onclick="this.classList.toggle('revealed')">${name}</span>`)
-            .replace(activeCard.v1, `<span class="blank-box" onclick="this.classList.toggle('revealed')">${activeCard.v1}</span>`)
-            .replace(activeCard.v2, `<span class="blank-box" onclick="this.classList.toggle('revealed')">${activeCard.v2}</span>`)
-            .replace(activeCard.v4, `<span class="blank-box" onclick="this.classList.toggle('revealed')">${activeCard.v4}</span>`)
-            .replace(activeCard.v5, `<span class="blank-box" onclick="this.classList.toggle('revealed')">${activeCard.v5}</span>`)
-            .replace(activeCard.v6, `<span class="blank-box" onclick="this.classList.toggle('revealed')">${activeCard.v6}</span>`)
-            .replace(activeCard.v7, `<span class="blank-box" onclick="this.classList.toggle('revealed')">${activeCard.v7}</span>`);
-
-          return `
-            <div class="card-item">
-              <div class="card-text"><strong>${l.num})</strong> ${html}</div>
-            </div>
-          `;
-        }).join('');
-      }
-    }
-
-    function nextSlide() { currentCardIndex++; render(); }
-    function prevSlide() { currentCardIndex--; render(); }
+    });
   </script>
 </body>
 </html>
