@@ -19,9 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// -------------------------------------------------------------
-// [페이지 라우팅] (상단 추가 버튼 없이 /add 직접 접속 전용)
-// -------------------------------------------------------------
+// 라우팅
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -30,56 +28,33 @@ app.get('/add', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'add.html'));
 });
 
-// -------------------------------------------------------------
-// [API 라우트] (Supabase DB 연동)
-// -------------------------------------------------------------
-
-// 1. 전체 큐카드 목록 불러오기
+// API Endpoint
 app.get('/api/cuecards', async (req, res) => {
   const { data: cards, error } = await supabase
     .from('cuecards')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Fetch Error:', error);
-    return res.status(500).json({ error: error.message });
-  }
-
+  if (error) return res.status(500).json({ error: error.message });
   res.json(cards || []);
 });
 
-// 2. 신규 큐카드 추가하기
 app.post('/api/cuecards', async (req, res) => {
   const { title, v1, v2, v4, v5, v6, v7 } = req.body;
-
   const { data, error } = await supabase
     .from('cuecards')
     .insert([{ title, v1, v2, v4, v5, v6, v7 }])
     .select();
 
-  if (error) {
-    console.error('Insert Error:', error);
-    return res.status(500).json({ error: error.message });
-  }
-
+  if (error) return res.status(500).json({ error: error.message });
   res.status(201).json({ success: true, card: data[0] });
 });
 
-// 3. 큐카드 삭제하기
 app.delete('/api/cuecards/:id', async (req, res) => {
   const { id } = req.params;
+  const { error } = await supabase.from('cuecards').delete().eq('id', id);
 
-  const { error } = await supabase
-    .from('cuecards')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error('Delete Error:', error);
-    return res.status(500).json({ error: error.message });
-  }
-
+  if (error) return res.status(500).json({ error: error.message });
   res.json({ success: true });
 });
 
