@@ -11,26 +11,12 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Inter', 'Noto Sans KR', sans-serif;
-    }
-    .card-flip-container {
-      perspective: 1000px;
-    }
-    .card-flip-inner {
-      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-      transform-style: preserve-3d;
-    }
-    .card-flipped .card-flip-inner {
-      transform: rotateY(180deg);
-    }
-    .card-front, .card-back {
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-    }
-    .card-back {
-      transform: rotateY(180deg);
-    }
+    body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
+    .card-flip-container { perspective: 1000px; }
+    .card-flip-inner { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+    .card-flipped .card-flip-inner { transform: rotateY(180deg); }
+    .card-front, .card-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .card-back { transform: rotateY(180deg); }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 pb-12">
@@ -65,7 +51,7 @@
 
   <main class="max-w-6xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-    <!-- LEFT PANEL: Simplified Speaker Input -->
+    <!-- LEFT PANEL -->
     <section class="lg:col-span-4 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4 h-fit">
       <div class="border-b border-slate-100 pb-3">
         <h2 class="font-bold text-lg text-slate-800 flex items-center gap-2">
@@ -89,10 +75,9 @@
       </div>
     </section>
 
-    <!-- RIGHT PANEL: Practice Modes & Cue Cards -->
+    <!-- RIGHT PANEL -->
     <section class="lg:col-span-8 flex flex-col space-y-4">
 
-      <!-- View Mode Tabs -->
       <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200/80 flex flex-wrap gap-2 justify-between items-center">
         <div class="flex space-x-1 w-full sm:w-auto">
           <button id="btnTabSlide" onclick="switchMode('slide')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-sm">
@@ -111,13 +96,11 @@
         </button>
       </div>
 
-      <!-- MODE 1: SINGLE FLASHCARD / SLIDE VIEW -->
+      <!-- MODE 1: SLIDE VIEW -->
       <div id="viewSlide" class="flex-1 flex flex-col justify-between space-y-4">
-        
         <div id="flashcardContainer" onclick="flipCard()" class="card-flip-container relative w-full h-80 sm:h-96 cursor-pointer group">
           <div id="cardFlipInner" class="card-flip-inner absolute w-full h-full rounded-2xl shadow-lg border border-slate-200/80 bg-white">
             
-            <!-- Front Side -->
             <div class="card-front absolute inset-0 p-6 sm:p-8 flex flex-col justify-between rounded-2xl bg-gradient-to-br from-white via-slate-50 to-indigo-50/30">
               <div class="flex justify-between items-center border-b border-slate-200/60 pb-3">
                 <span id="slideCardNum" class="text-xs sm:text-sm font-extrabold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full border border-indigo-200">
@@ -141,7 +124,6 @@
               </div>
             </div>
 
-            <!-- Back Side -->
             <div class="card-back absolute inset-0 p-6 sm:p-8 flex flex-col justify-between rounded-2xl bg-gradient-to-br from-indigo-900 to-slate-900 text-white">
               <div class="flex justify-between items-center border-b border-indigo-700/50 pb-3">
                 <span class="text-xs sm:text-sm font-bold text-indigo-300">
@@ -164,7 +146,6 @@
           </div>
         </div>
 
-        <!-- Navigation Controls -->
         <div class="flex justify-between items-center bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm">
           <button onclick="prevCard()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all flex items-center gap-2">
             <i class="fa-solid fa-chevron-left"></i> 이전 Card
@@ -178,10 +159,9 @@
             다음 Card <i class="fa-solid fa-chevron-right"></i>
           </button>
         </div>
-
       </div>
 
-      <!-- MODE 2: FULL LIST VIEW -->
+      <!-- MODE 2: FULL LIST -->
       <div id="viewList" class="hidden space-y-3">
         <div class="bg-indigo-50 border border-indigo-100 text-indigo-900 px-4 py-3 rounded-xl text-xs sm:text-sm font-medium flex items-center justify-between">
           <span><i class="fa-solid fa-circle-info text-indigo-500 mr-1"></i> 전체 발표 문장을 순서대로 한눈에 확인할 수 있습니다.</span>
@@ -204,7 +184,6 @@
       </div>
 
     </section>
-
   </main>
 
   <script>
@@ -215,7 +194,20 @@
     let hideAllBlanksState = true;
     const synth = window.speechSynthesis;
 
-    // 연도 숫자를 영어로 변환하는 함수
+    // 수사 및 영문 연도 정확한 TTS 발음 처리 로직
+    const numberWords = {
+      0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine",
+      10: "ten", 11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen",
+      20: "twenty", 30: "thirty", 40: "forty", 50: "fifty", 60: "sixty", 70: "seventy", 80: "eighty", 90: "ninety"
+    };
+
+    function numToWords(n) {
+      if (n < 20) return numberWords[n];
+      const tens = Math.floor(n / 10) * 10;
+      const units = n % 10;
+      return units === 0 ? numberWords[tens] : `${numberWords[tens]} ${numberWords[units]}`;
+    }
+
     function formatYearSpeech(yearStr) {
       if (!yearStr) return { speak: "", display: "" };
       const cleanYear = yearStr.trim();
@@ -223,22 +215,25 @@
 
       if (isNaN(num)) return { speak: cleanYear, display: "" };
 
-      if (num >= 1900 && num < 2000) {
+      // 1908 -> "nineteen oh-eight"
+      if (num >= 1000 && num < 2000) {
         const century = Math.floor(num / 100);
         const decade = num % 100;
-        if (decade === 0) return { speak: `${century} hundred`, display: `🗣️ 읽기: [${century} hundred]` };
-        if (decade < 10) return { speak: `${century} oh ${decade}`, display: `🗣️ 읽기: [${century} oh-${decade}]` };
-        return { speak: `${century} ${decade}`, display: `🗣️ 읽기: [${century} ${decade}]` };
+        const centuryWord = numToWords(century);
+        if (decade === 0) return { speak: `${centuryWord} hundred`, display: `🗣️ 발음: [${centuryWord} hundred]` };
+        if (decade < 10) return { speak: `${centuryWord} oh ${numToWords(decade)}`, display: `🗣️ 발음: [${centuryWord} oh-${numToWords(decade)}]` };
+        return { speak: `${centuryWord} ${numToWords(decade)}`, display: `🗣️ 발음: [${centuryWord} ${numToWords(decade)}]` };
       } 
       else if (num >= 2000 && num < 2010) {
         const decade = num % 100;
-        if (decade === 0) return { speak: `two thousand`, display: `🗣️ 읽기: [two thousand]` };
-        return { speak: `two thousand and ${decade}`, display: `🗣️ 읽기: [two thousand and ${decade}]` };
+        if (decade === 0) return { speak: `two thousand`, display: `🗣️ 발음: [two thousand]` };
+        return { speak: `two thousand and ${numToWords(decade)}`, display: `🗣️ 발음: [two thousand and ${numToWords(decade)}]` };
       } 
       else if (num >= 2010 && num < 2100) {
         const century = Math.floor(num / 100);
         const decade = num % 100;
-        return { speak: `${century} ${decade}`, display: `🗣️ 읽기: [${century} ${decade}]` };
+        const centuryWord = numToWords(century);
+        return { speak: `${centuryWord} ${numToWords(decade)}`, display: `🗣️ 발음: [${centuryWord} ${numToWords(decade)}]` };
       }
 
       return { speak: cleanYear, display: "" };
@@ -281,11 +276,11 @@
       if (dbCardsList.length === 0) return;
       activeCardData = dbCardsList[index];
 
-      // 인포 박스 정보 업데이트
+      const yearInfo = formatYearSpeech(activeCardData.v4);
       document.getElementById('infoContent').innerHTML = `
         <p><strong>발명품:</strong> ${activeCardData.v1}</p>
         <p><strong>발명가:</strong> ${activeCardData.v2}</p>
-        <p><strong>연도:</strong> ${activeCardData.v4} (${formatYearSpeech(activeCardData.v4).display})</p>
+        <p><strong>연도:</strong> ${activeCardData.v4} <span class="text-indigo-600 font-semibold">(${yearInfo.speak})</span></p>
       `;
 
       currentCardIndex = 0;
@@ -406,7 +401,6 @@
       });
     }
 
-    // 빈칸 가리기 오류 완벽 수정
     function renderBlankList() {
       const cards = getCardData();
       const container = document.getElementById('blankListContainer');
@@ -468,7 +462,7 @@
       synth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
-      utterance.rate = 0.9;
+      utterance.rate = 0.85;
       synth.speak(utterance);
     }
 
@@ -482,7 +476,7 @@
       getCardData().forEach(card => {
         const utterance = new SpeechSynthesisUtterance(card.speakEng);
         utterance.lang = 'en-US';
-        utterance.rate = 0.9;
+        utterance.rate = 0.85;
         synth.speak(utterance);
       });
     }
