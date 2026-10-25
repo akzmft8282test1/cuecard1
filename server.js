@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // -------------------------------------------------------------
-// [페이지 라우팅] (상단 버튼 없음 /add 직접 주소 접속 전용)
+// [페이지 라우팅] (상단 추가 버튼 없이 /add 직접 접속 전용)
 // -------------------------------------------------------------
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -31,10 +31,10 @@ app.get('/add', (req, res) => {
 });
 
 // -------------------------------------------------------------
-// [API 라우트] (오직 큐카드 데이터만 DB 연동)
+// [API 라우트] (Supabase DB 연동)
 // -------------------------------------------------------------
 
-// 1. 전체 큐카드 목록 조회 API
+// 1. 전체 큐카드 목록 불러오기
 app.get('/api/cuecards', async (req, res) => {
   const { data: cards, error } = await supabase
     .from('cuecards')
@@ -49,7 +49,7 @@ app.get('/api/cuecards', async (req, res) => {
   res.json(cards || []);
 });
 
-// 2. 신규 큐카드 추가 API
+// 2. 신규 큐카드 추가하기
 app.post('/api/cuecards', async (req, res) => {
   const { title, v1, v2, v4, v5, v6, v7 } = req.body;
 
@@ -66,7 +66,7 @@ app.post('/api/cuecards', async (req, res) => {
   res.status(201).json({ success: true, card: data[0] });
 });
 
-// 3. 큐카드 삭제 API
+// 3. 큐카드 삭제하기
 app.delete('/api/cuecards/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -84,5 +84,5 @@ app.delete('/api/cuecards/:id', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
