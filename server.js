@@ -17,12 +17,10 @@ const supabase = createClient(SUPABASE_URL || '', SUPABASE_KEY || '');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// 정적 파일(HTML, CSS, JS) 제공
 app.use(express.static(path.join(__dirname, 'public')));
 
 // -------------------------------------------------------------
-// [페이지 라우팅]
+// [페이지 라우팅] (상단 버튼 없음 /add 직접 주소 접속 전용)
 // -------------------------------------------------------------
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -33,7 +31,7 @@ app.get('/add', (req, res) => {
 });
 
 // -------------------------------------------------------------
-// [API 라우트]
+// [API 라우트] (오직 큐카드 데이터만 DB 연동)
 // -------------------------------------------------------------
 
 // 1. 전체 큐카드 목록 조회 API
