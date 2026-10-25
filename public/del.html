@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>큐카드 삭제 (/del)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-6">
+  <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <h2 class="text-2xl font-bold text-slate-800 mb-2">🗑️ 공용 큐카드 삭제</h2>
+    <p class="text-sm text-slate-500 mb-6">삭제할 큐카드를 선택한 뒤 버튼을 누르면 DB에서 완전히 제거됩니다.</p>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">삭제할 큐카드 목록:</label>
+        <select id="delSelect" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-red-500">
+          <option value="">불러오는 중...</option>
+        </select>
+      </div>
+
+      <button onclick="executeDelete()" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow transition-colors mt-4">
+        선택한 큐카드 완전히 삭제하기
+      </button>
+
+      <div class="pt-4 border-t border-slate-100 text-center">
+        <a href="/" class="text-xs text-indigo-600 font-semibold hover:underline">← 메인 연습 화면으로 돌아가기</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let cardList = [];
+
+    window.onload = async function() {
+      await loadCards();
+    };
+
+    async function loadCards() {
+      try {
+        const res = await fetch('/api/cuecards');
+        cardList = await res.json();
+
+        const select = document.getElementById('delSelect');
+        select.innerHTML = '';
+
+        if (cardList.length === 0) {
+          select.innerHTML = '<option value="">(삭제할 큐카드가 없습니다)</option>';
+        } else {
+          cardList.forEach(card => {
+            const opt = document.createElement('option');
+            opt.value = card.id;
+            opt.textContent = `${card.title} (${card.v1})`;
+            select.appendChild(opt);
+          });
+        }
+      } catch (err) {
+        console.error('큐카드 불러오기 오류:', err);
+      }
+    }
+
+    async function executeDelete() {
+      const select = document.getElementById('delSelect');
+      const cardId = select.value;
+
+      if (!cardId) {
+        alert('삭제할 큐카드를 선택해주세요.');
+        return;
+      }
+
+      const selectedOpt = select.options[select.selectedIndex].text;
+
+      if (confirm(`정말로 "${selectedOpt}" 큐카드를 삭제하시겠습니까?`)) {
+        try {
+          const res = await fetch(`/api/cuecards/${cardId}`, { method: 'DELETE' });
+          if (res.ok) {
+            alert('성공적으로 삭제되었습니다.');
+            await loadCards();
+          } else {
+            alert('삭제에 실패했습니다.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('서버 연결 중 오류가 발생했습니다.');
+        }
+      }
+    }
+  </script>
+</body>
+</html>
