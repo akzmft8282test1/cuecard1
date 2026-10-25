@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 라우팅
+// 라우트 설정
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -28,7 +28,12 @@ app.get('/add', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'add.html'));
 });
 
-// API Endpoint
+// /del 전용 삭제 페이지 라우트 추가
+app.get('/del', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'del.html'));
+});
+
+// API Endpoints
 app.get('/api/cuecards', async (req, res) => {
   const { data: cards, error } = await supabase
     .from('cuecards')
