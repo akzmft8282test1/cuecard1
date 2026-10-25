@@ -21,7 +21,7 @@
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 pb-12">
 
-  <!-- Header Section (사무적이고 깔끔한 네이비/슬레이트 헤더) -->
+  <!-- Header Section ([삭제] 버튼 제거됨) -->
   <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30 border-b border-slate-800">
     <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
       <div class="flex items-center space-x-3">
@@ -35,16 +35,13 @@
       </div>
       
       <!-- DB Cue Card Select Dropdown -->
-      <div class="flex items-center space-x-2 bg-slate-800 p-1.5 rounded-lg border border-slate-700 w-full sm:w-auto justify-between">
-        <span class="text-xs font-semibold px-2 text-slate-300 flex items-center gap-1">
+      <div class="flex items-center space-x-2 bg-slate-800 p-1.5 rounded-lg border border-slate-700 w-full sm:w-auto">
+        <span class="text-xs font-semibold px-2 text-slate-300 flex items-center gap-1 shrink-0">
           <i class="fa-solid fa-database text-indigo-400"></i> 큐카드 선택:
         </span>
-        <select id="dbCardSelect" onchange="loadCardFromDB(this.value)" class="bg-slate-900 text-slate-100 text-xs font-medium rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 border border-slate-700 cursor-pointer">
+        <select id="dbCardSelect" onchange="loadCardFromDB(this.value)" class="bg-slate-900 text-slate-100 text-xs font-medium rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 border border-slate-700 cursor-pointer w-full sm:w-auto">
           <option value="">불러오는 중...</option>
         </select>
-        <button onclick="deleteCurrentCard()" class="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold transition-colors">
-          삭제
-        </button>
       </div>
     </div>
   </header>
@@ -297,21 +294,6 @@
       updateCards();
     }
 
-    async function deleteCurrentCard() {
-      if (!activeCardData) return;
-      if (confirm(`"${activeCardData.title}" 큐카드를 삭제하시겠습니까?`)) {
-        try {
-          const res = await fetch(`/api/cuecards/${activeCardData.id}`, { method: 'DELETE' });
-          if (res.ok) {
-            alert('삭제되었습니다.');
-            await fetchDBCards();
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      }
-    }
-
     function getCardData() {
       const name = document.getElementById('userName').value.trim() || '[이름]';
       if (!activeCardData) return [];
@@ -411,7 +393,6 @@
       });
     }
 
-    // 영어 및 한글 동시 블라인드 처리 & 상호 해제 연결 로직
     function togglePair(cardNum) {
       const elements = document.querySelectorAll(`.blank-pair-${cardNum}`);
       elements.forEach(el => {
@@ -430,13 +411,11 @@
         let blankKor = card.kor;
         const pairId = idx;
 
-        // 1. 영어 빈칸 처리
         if (card.targetEng && card.plainEng.includes(card.targetEng)) {
           const hiddenEngSpan = `<span onclick="togglePair(${pairId})" class="blank-pair-${pairId} bg-slate-800 text-transparent font-bold px-2 py-0.5 rounded cursor-pointer select-none inline-block my-0.5 transition-all" title="클릭하여 토글">${card.targetEng}</span>`;
           blankEng = card.plainEng.replace(card.targetEng, hiddenEngSpan);
         }
 
-        // 2. 한글 번역 빈칸 처리
         if (card.targetKor && card.kor.includes(card.targetKor)) {
           const hiddenKorSpan = `<span onclick="togglePair(${pairId})" class="blank-pair-${pairId} bg-slate-800 text-transparent font-bold px-2 py-0.5 rounded cursor-pointer select-none inline-block my-0.5 transition-all" title="클릭하여 토글">${card.targetKor}</span>`;
           blankKor = card.kor.replace(card.targetKor, hiddenKorSpan);
