@@ -193,8 +193,21 @@
     let isFlipped = false;
     let hideAllBlanksState = true;
     const synth = window.speechSynthesis;
+    let englishVoice = null;
 
-    // 수사 및 영문 연도 정확한 TTS 발음 처리 로직
+    // 미국 영어(en-US) 전용 음성 감지 및 로딩
+    function loadEnglishVoice() {
+      if (!('speechSynthesis' in window)) return;
+      const voices = synth.getVoices();
+      englishVoice = voices.find(v => v.lang === 'en-US' || v.lang.startsWith('en')) || null;
+    }
+
+    if ('speechSynthesis' in window) {
+      loadEnglishVoice();
+      window.speechSynthesis.onvoiceschanged = loadEnglishVoice;
+    }
+
+    // 숫자를 영어 단어로 정확히 변환
     const numberWords = {
       0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine",
       10: "ten", 11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen",
@@ -215,7 +228,7 @@
 
       if (isNaN(num)) return { speak: cleanYear, display: "" };
 
-      // 1908 -> "nineteen oh-eight"
+      // 예: 1908 -> "nineteen oh eight"
       if (num >= 1000 && num < 2000) {
         const century = Math.floor(num / 100);
         const decade = num % 100;
@@ -458,11 +471,17 @@
       }
     }
 
+    // TTS 음성 출력 제어 (영어 전용 Voice 강제 적용)
     function speakText(text) {
       synth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
       utterance.rate = 0.85;
+
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
       synth.speak(utterance);
     }
 
@@ -477,6 +496,7 @@
         const utterance = new SpeechSynthesisUtterance(card.speakEng);
         utterance.lang = 'en-US';
         utterance.rate = 0.85;
+        if (englishVoice) utterance.voice = englishVoice;
         synth.speak(utterance);
       });
     }
