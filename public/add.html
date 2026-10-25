@@ -13,42 +13,42 @@
 <body class="bg-slate-100 min-h-screen p-6">
   <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
     <h2 class="text-2xl font-bold text-slate-800 mb-2">➕ 새 공용 큐카드 등록</h2>
-    <p class="text-sm text-slate-500 mb-6">등록된 큐카드는 Supabase 데이터베이스에 저장되어 누구나 공유할 수 있습니다.</p>
+    <p class="text-sm text-slate-500 mb-6">등록된 큐카드는 Supabase 데이터베이스에 보관되어 함께 공유됩니다.</p>
 
     <form id="addForm" onsubmit="submitForm(event)" class="space-y-4">
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">📌 큐카드 구분 이름 (예: 세탁기, 스마트폰):</label>
-        <input type="text" id="title" placeholder="예: 세탁기 발표" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
+        <input type="text" id="title" placeholder="예: 세탁기 발표" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">1) 발명품 이름 [1]:</label>
-        <input type="text" id="v1" placeholder="예: the washing machine" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
+        <input type="text" id="v1" placeholder="예: the washing machine" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">2) 발명가 [2]:</label>
-        <input type="text" id="v2" placeholder="예: Alva Fisher" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
+        <input type="text" id="v2" placeholder="예: Alva Fisher" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">4) 연도/시기 [4]:</label>
-        <input type="text" id="v4" placeholder="예: 1908" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
+        <input type="text" id="v4" placeholder="예: 1908" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">5) 과거의 문제점 (They had to ___) [5]:</label>
-        <input type="text" id="v5" placeholder="예: wash all clothes by hand" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
+        <input type="text" id="v5" placeholder="예: wash all clothes by hand" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">6) 안 해도 되는 힘든 일 (We don't have to ___) [6]:</label>
-        <input type="text" id="v6" placeholder="예: do hard laundry work" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
+        <input type="text" id="v6" placeholder="예: do hard laundry work" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">7) 현재 주요 사용 목적 (usually use it to ___) [7]:</label>
-        <input type="text" id="v7" placeholder="예: wash a lot of clothes quickly" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
+        <input type="text" id="v7" placeholder="예: wash a lot of clothes quickly" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500" required>
       </div>
 
       <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow transition-colors mt-4">
