@@ -474,26 +474,48 @@
       }
     }
 
-    // 이름은 한국어 음성(ko-KR)으로, 나머지는 미국 영어 음성(en-US)으로 분리 재생
+    // TTS 기호(점, 하이픈 등) 제거 및 이름 언어 자동 감지 분리 읽기
     function speakText(text) {
       synth.cancel();
 
       const name = document.getElementById('userName').value.trim();
+
+      // 문장에서 TTS가 기호 이름을 읽지 않도록 점(.), 하이픈(-) 등의 특수기호 제거
+      const cleanSpeechText = (str) => {
+        return str
+          .replace(/[-_]/g, ' ')           // 하이픈, 언더스코어를 공백으로 변환
+          .replace(/[.,/#!$%^&*;:{}=\`~()]/g, ''); // 마침표, 쉼표 등 기호 완전 제거
+      };
 
       if (name && text.includes(name)) {
         const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const namePattern = new RegExp(`(${escapeRegex(name)})`, 'gi');
         const parts = text.split(namePattern);
 
+        // 한글 포함 여부 체크 (한글 문자열 정규식)
+        const hasKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
+
         parts.forEach(part => {
           if (!part) return;
-          const utterance = new SpeechSynthesisUtterance(part);
+          const cleanedPart = cleanSpeechText(part);
+          if (!cleanedPart.trim()) return;
+
+          const utterance = new SpeechSynthesisUtterance(cleanedPart);
 
           if (part.toLowerCase() === name.toLowerCase()) {
-            utterance.lang = 'ko-KR';
-            utterance.rate = 0.9;
-            if (koreanVoice) utterance.voice = koreanVoice;
+            if (hasKorean) {
+              // 이름이 한글인 경우 -> ko-KR 발음
+              utterance.lang = 'ko-KR';
+              utterance.rate = 0.9;
+              if (koreanVoice) utterance.voice = koreanVoice;
+            } else {
+              // 이름이 영문인 경우 -> en-US 발음
+              utterance.lang = 'en-US';
+              utterance.rate = 0.85;
+              if (englishVoice) utterance.voice = englishVoice;
+            }
           } else {
+            // 나머지 본문 영어 문장 -> en-US 발음
             utterance.lang = 'en-US';
             utterance.rate = 0.85;
             if (englishVoice) utterance.voice = englishVoice;
@@ -502,7 +524,8 @@
           synth.speak(utterance);
         });
       } else {
-        const utterance = new SpeechSynthesisUtterance(text);
+        const cleaned = cleanSpeechText(text);
+        const utterance = new SpeechSynthesisUtterance(cleaned);
         utterance.lang = 'en-US';
         utterance.rate = 0.85;
         if (englishVoice) utterance.voice = englishVoice;
