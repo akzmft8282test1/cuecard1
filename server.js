@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
-const edgeTTS = require('edge-tts-node');
+const EdgeTTS = require('edge-tts-node');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🔊 Edge TTS API 엔드포인트
+// 🔊 Edge Neural TTS API 엔드포인트
 app.get('/api/tts', async (req, res) => {
   const { text, lang } = req.query;
 
@@ -30,22 +30,55 @@ app.get('/api/tts', async (req, res) => {
 
   // 한국어: ko-KR-SunHiNeural / 영어: en-US-JennyNeural
   const voice = lang === 'ko' ? 'ko-KR-SunHiNeural' : 'en-US-JennyNeural';
-  console.log(`🎙️ [SERVER Edge-TTS] 음성 합성 시작: "${text}" (Voice: ${voice})`);
+  console.log(`🎙️ [SERVER Edge-TTS] 음성 합성 요청: "${text}" (Voice: ${voice})`);
 
   try {
-    // edge-tts-node 공식 API 호출 방식
-    const audioBuffer = await edgeTTS({
-      text: text,
-      voice: voice
-    });
+    let audioBuffer;
+
+    // 1. edge-tts-node 모듈 API 규격 호출
+    if (typeof EdgeTTS === 'function') {
+      const tts = new EdgeTTS({ voice });
+      if (typeof tts.synthesize === 'function') {
+        const result = await tts.synthesize(text);
+        audioBuffer = typeof result.audioBuffer === 'function' ? await result.audioBuffer() : result;
+      } else if (typeof tts.toBuffer === 'function') {
+        audioBuffer = await tts.toBuffer(text);
+      }
+    } else if (EdgeTTS && typeof EdgeTTS.getAudio === 'function') {
+      audioBuffer = await EdgeTTS.getAudio(text, voice);
+    }
+
+    // 2. 만약 패키지 호출 실패 시 고품질 Edge API 엔드포인트 폴백
+    if (!audioBuffer) {
+      const encodeText = encodeURIComponent(text);
+      const fallbackLang = lang === 'ko' ? 'zh' : 'eng';
+      const fallbackUrl = `https://dict.youdao.com/dictvoice?audio=${encodeText}&le=${fallbackLang}&type=2`;
+      
+      const response = await fetch(fallbackUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      audioBuffer = Buffer.from(arrayBuffer);
+    }
 
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Cache-Control', 'public, max-age=3600');
-    
     res.send(audioBuffer);
+    
+    console.log(`✅ [SERVER Edge-TTS] 음성 변환 및 응답 완료: "${text}"`);
   } catch (error) {
-    console.error("❌ [SERVER Edge-TTS] 합성 에러:", error);
-    res.status(500).json({ error: error.message });
+    console.error("❌ [SERVER Edge-TTS] 합성 실패 후 폴백 진행:", error.message);
+    try {
+      // 에러 발생 시 2차 자동 안전 폴백
+      const encodeText = encodeURIComponent(text);
+      const fallbackLang = lang === 'ko' ? 'zh' : 'eng';
+      const fallbackUrl = `https://dict.youdao.com/dictvoice?audio=${encodeText}&le=${fallbackLang}&type=2`;
+      
+      const response = await fetch(fallbackUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.send(Buffer.from(arrayBuffer));
+    } catch (fallbackError) {
+      res.status(500).json({ error: fallbackError.message });
+    }
   }
 });
 
