@@ -60,7 +60,7 @@
       <div class="space-y-4">
         <div>
           <label class="block font-semibold text-slate-700 text-xs mb-1.5">발표자 이름 [이름]</label>
-          <input type="text" id="userName" value="Minsoo" oninput="localStorage.setItem('speakerName', this.value); updateCards();" class="w-full px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" placeholder="예: Minsoo">
+          <input type="text" id="userName" value="Minsoo" oninput="localStorage.setItem('speakerName', this.value); updateCards();" class="w-full px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" placeholder="예: 민수 또는 Minsoo">
         </div>
 
         <div id="cardInfoBox" class="bg-slate-50 border border-slate-200 rounded-lg p-3.5 text-xs space-y-1.5 text-slate-600">
@@ -191,16 +191,18 @@
     let hideAllBlanksState = true;
     const synth = window.speechSynthesis;
     let englishVoice = null;
+    let koreanVoice = null;
 
-    function loadEnglishVoice() {
+    function loadVoices() {
       if (!('speechSynthesis' in window)) return;
       const voices = synth.getVoices();
       englishVoice = voices.find(v => v.lang === 'en-US' || v.lang.startsWith('en')) || null;
+      koreanVoice = voices.find(v => v.lang === 'ko-KR' || v.lang.startsWith('ko')) || null;
     }
 
     if ('speechSynthesis' in window) {
-      loadEnglishVoice();
-      window.speechSynthesis.onvoiceschanged = loadEnglishVoice;
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
     }
 
     const numberWords = {
@@ -472,17 +474,40 @@
       }
     }
 
+    // 이름은 한국어 음성(ko-KR)으로, 나머지는 미국 영어 음성(en-US)으로 분리 재생
     function speakText(text) {
       synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.85;
 
-      if (englishVoice) {
-        utterance.voice = englishVoice;
+      const name = document.getElementById('userName').value.trim();
+
+      if (name && text.includes(name)) {
+        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const namePattern = new RegExp(`(${escapeRegex(name)})`, 'gi');
+        const parts = text.split(namePattern);
+
+        parts.forEach(part => {
+          if (!part) return;
+          const utterance = new SpeechSynthesisUtterance(part);
+
+          if (part.toLowerCase() === name.toLowerCase()) {
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.9;
+            if (koreanVoice) utterance.voice = koreanVoice;
+          } else {
+            utterance.lang = 'en-US';
+            utterance.rate = 0.85;
+            if (englishVoice) utterance.voice = englishVoice;
+          }
+
+          synth.speak(utterance);
+        });
+      } else {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.85;
+        if (englishVoice) utterance.voice = englishVoice;
+        synth.speak(utterance);
       }
-
-      synth.speak(utterance);
     }
 
     function speakCurrentCard() {
@@ -493,11 +518,7 @@
     function speakAll() {
       synth.cancel();
       getCardData().forEach(card => {
-        const utterance = new SpeechSynthesisUtterance(card.speakEng);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.85;
-        if (englishVoice) utterance.voice = englishVoice;
-        synth.speak(utterance);
+        speakText(card.speakEng);
       });
     }
 
