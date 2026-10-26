@@ -191,31 +191,10 @@
     let hideAllBlanksState = true;
 
     // ==========================================
-    // 🔊 순수 Web Speech API 완벽 분리 로직
+    // 🔊 오디오 스트리밍 방식 구글 TTS (기기 종속 없음)
     // ==========================================
-    const synth = window.speechSynthesis;
-    let voiceEN = null;
-    let voiceKO = null;
+    let currentAudio = null;
 
-    function getVoices() {
-      if (!synth) return;
-      const voices = synth.getVoices();
-      
-      // 영어 Voice 찾기 (US / GB 순서)
-      voiceEN = voices.find(v => v.lang === 'en-US') ||
-                voices.find(v => v.lang.startsWith('en')) || null;
-
-      // 한국어 Voice 찾기
-      voiceKO = voices.find(v => v.lang === 'ko-KR') ||
-                voices.find(v => v.lang.startsWith('ko')) || null;
-    }
-
-    if (synth) {
-      getVoices();
-      synth.onvoiceschanged = getVoices;
-    }
-
-    // 특수기호 무음 정제 함수
     function cleanPunctuation(str) {
       return str
         .replace(/[-_]/g, ' ')
@@ -223,68 +202,60 @@
         .trim();
     }
 
-    // 단일 단락 Utterance 생성 전용 함수
-    function createUtterance(text, langType) {
-      const u = new SpeechSynthesisUtterance(text);
-      if (langType === 'ko') {
-        u.lang = 'ko-KR';
-        u.rate = 0.9;
-        if (voiceKO) u.voice = voiceKO;
-      } else {
-        u.lang = 'en-US';
-        u.rate = 0.85;
-        if (voiceEN) u.voice = voiceEN;
+    function getAudioUrl(text, lang) {
+      const encodedText = encodeURIComponent(text);
+      return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=${lang}&client=tw-ob`;
+    }
+
+    function stopAudio() {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
       }
-      return u;
     }
 
     function speakText(text, callbackOnEnd) {
-      if (!synth) return;
-      synth.cancel(); // 이전 재생 취소
-
-      if (!voiceEN) getVoices();
+      stopAudio();
 
       const name = document.getElementById('userName').value.trim();
       const hasKoreanName = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
 
-      // 이름이 문장에 있고 한글인 경우: [영어 전반부] -> [한글 이름] -> [영어 후반부] 순차 연결
+      const queue = [];
+
+      // 이름이 있고 한글 이름이 포함되어 있는 경우 분리
       if (name && text.includes(name) && hasKoreanName) {
         const parts = text.split(name);
         const part1 = cleanPunctuation(parts[0]);
         const part2 = cleanPunctuation(parts[1] || '');
 
-        const queue = [];
-
-        if (part1) queue.push({ text: part1, lang: 'en' });
-        queue.push({ text: name, lang: 'ko' });
-        if (part2) queue.push({ text: part2, lang: 'en' });
-
-        function playQueue(index) {
-          if (index >= queue.length) {
-            if (callbackOnEnd) callbackOnEnd();
-            return;
-          }
-          const item = queue[index];
-          const utterance = createUtterance(item.text, item.lang);
-          utterance.onend = () => playQueue(index + 1);
-          utterance.onerror = () => playQueue(index + 1);
-          synth.speak(utterance);
-        }
-
-        playQueue(0);
+        if (part1) queue.push({ url: getAudioUrl(part1, 'en') });
+        queue.push({ url: getAudioUrl(name, 'ko') });
+        if (part2) queue.push({ url: getAudioUrl(part2, 'en') });
       } else {
-        // 이름이 영문이거나 이름이 없는 일반 문장: 100% 영어 처리
+        // pure 영문 또는 일반 문장
         const cleaned = cleanPunctuation(text);
-        if (!cleaned) {
+        if (cleaned) {
+          queue.push({ url: getAudioUrl(cleaned, 'en') });
+        }
+      }
+
+      function playQueue(index) {
+        if (index >= queue.length) {
           if (callbackOnEnd) callbackOnEnd();
           return;
         }
 
-        const utterance = createUtterance(cleaned, 'en');
-        utterance.onend = () => { if (callbackOnEnd) callbackOnEnd(); };
-        utterance.onerror = () => { if (callbackOnEnd) callbackOnEnd(); };
-        synth.speak(utterance);
+        const item = queue[index];
+        currentAudio = new Audio(item.url);
+
+        currentAudio.onended = () => playQueue(index + 1);
+        currentAudio.onerror = () => playQueue(index + 1);
+
+        currentAudio.play().catch(() => playQueue(index + 1));
       }
+
+      playQueue(0);
     }
 
     function speakCurrentCard() {
@@ -311,7 +282,7 @@
     }
 
     // ==========================================
-    // 🃏 연도 및 카드 데이터 로직 (기존 유지)
+    // 🃏 연도 및 카드 데이터 처리 로직 (기존 유지)
     // ==========================================
     const numberWords = {
       0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine",
