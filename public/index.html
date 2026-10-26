@@ -10,8 +10,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-  <!-- ResponsiveVoice 외부 전문 TTS 라이브러리 추가 -->
-  <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE_KEY"></script>
   <style>
     body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
     .card-flip-container { perspective: 1000px; }
@@ -62,7 +60,7 @@
       <div class="space-y-4">
         <div>
           <label class="block font-semibold text-slate-700 text-xs mb-1.5">발표자 이름 [이름]</label>
-          <input type="text" id="userName" value="Minsoo" oninput="localStorage.setItem('speakerName', this.value); updateCards();" class="w-full px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" placeholder="예: Minsoo 또는 민수">
+          <input type="text" id="userName" value="Minsoo" oninput="localStorage.setItem('speakerName', this.value); updateCards();" class="w-full px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" placeholder="예: 민수 또는 Minsoo">
         </div>
 
         <div id="cardInfoBox" class="bg-slate-50 border border-slate-200 rounded-lg p-3.5 text-xs space-y-1.5 text-slate-600">
@@ -193,52 +191,99 @@
     let hideAllBlanksState = true;
 
     // ==========================================
-    // 🔊 신규 고품질 TTS 엔진 (ResponsiveVoice 사용)
+    // 🔊 순수 Web Speech API 완벽 분리 로직
     // ==========================================
-    function speakText(text) {
-      if (typeof responsiveVoice === 'undefined') {
-        alert('TTS 엔진을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
-        return;
-      }
+    const synth = window.speechSynthesis;
+    let voiceEN = null;
+    let voiceKO = null;
 
-      responsiveVoice.cancel(); // 이전 음성 취소
+    function getVoices() {
+      if (!synth) return;
+      const voices = synth.getVoices();
+      
+      // 영어 Voice 찾기 (US / GB 순서)
+      voiceEN = voices.find(v => v.lang === 'en-US') ||
+                voices.find(v => v.lang.startsWith('en')) || null;
+
+      // 한국어 Voice 찾기
+      voiceKO = voices.find(v => v.lang === 'ko-KR') ||
+                voices.find(v => v.lang.startsWith('ko')) || null;
+    }
+
+    if (synth) {
+      getVoices();
+      synth.onvoiceschanged = getVoices;
+    }
+
+    // 특수기호 무음 정제 함수
+    function cleanPunctuation(str) {
+      return str
+        .replace(/[-_]/g, ' ')
+        .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '')
+        .trim();
+    }
+
+    // 단일 단락 Utterance 생성 전용 함수
+    function createUtterance(text, langType) {
+      const u = new SpeechSynthesisUtterance(text);
+      if (langType === 'ko') {
+        u.lang = 'ko-KR';
+        u.rate = 0.9;
+        if (voiceKO) u.voice = voiceKO;
+      } else {
+        u.lang = 'en-US';
+        u.rate = 0.85;
+        if (voiceEN) u.voice = voiceEN;
+      }
+      return u;
+    }
+
+    function speakText(text, callbackOnEnd) {
+      if (!synth) return;
+      synth.cancel(); // 이전 재생 취소
+
+      if (!voiceEN) getVoices();
 
       const name = document.getElementById('userName').value.trim();
-
-      // 특수기호 제거 함수
-      const cleanText = (str) => {
-        return str
-          .replace(/[-_]/g, ' ')
-          .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '')
-          .trim();
-      };
-
-      // 이름이 한국어인지 확인
       const hasKoreanName = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
 
+      // 이름이 문장에 있고 한글인 경우: [영어 전반부] -> [한글 이름] -> [영어 후반부] 순차 연결
       if (name && text.includes(name) && hasKoreanName) {
-        // 이름에 한글이 포함된 경우 -> [영어 문장 1] -> [한글 이름] -> [영어 문장 2] 분리 재생
         const parts = text.split(name);
-        const part1 = cleanText(parts[0]);
-        const part2 = cleanText(parts[1] || '');
+        const part1 = cleanPunctuation(parts[0]);
+        const part2 = cleanPunctuation(parts[1] || '');
 
-        if (part1) {
-          responsiveVoice.speak(part1, "US English Female", { rate: 0.9, onend: () => {
-            responsiveVoice.speak(name, "Korean Female", { rate: 0.9, onend: () => {
-              if (part2) responsiveVoice.speak(part2, "US English Female", { rate: 0.9 });
-            }});
-          }});
-        } else {
-          responsiveVoice.speak(name, "Korean Female", { rate: 0.9, onend: () => {
-            if (part2) responsiveVoice.speak(part2, "US English Female", { rate: 0.9 });
-          }});
+        const queue = [];
+
+        if (part1) queue.push({ text: part1, lang: 'en' });
+        queue.push({ text: name, lang: 'ko' });
+        if (part2) queue.push({ text: part2, lang: 'en' });
+
+        function playQueue(index) {
+          if (index >= queue.length) {
+            if (callbackOnEnd) callbackOnEnd();
+            return;
+          }
+          const item = queue[index];
+          const utterance = createUtterance(item.text, item.lang);
+          utterance.onend = () => playQueue(index + 1);
+          utterance.onerror = () => playQueue(index + 1);
+          synth.speak(utterance);
         }
+
+        playQueue(0);
       } else {
-        // 영문 이름이거나 일반 영어 문장 -> 미국 선명한 여성 영어 발음 적용
-        const cleaned = cleanText(text);
-        if (cleaned) {
-          responsiveVoice.speak(cleaned, "US English Female", { rate: 0.9 });
+        // 이름이 영문이거나 이름이 없는 일반 문장: 100% 영어 처리
+        const cleaned = cleanPunctuation(text);
+        if (!cleaned) {
+          if (callbackOnEnd) callbackOnEnd();
+          return;
         }
+
+        const utterance = createUtterance(cleaned, 'en');
+        utterance.onend = () => { if (callbackOnEnd) callbackOnEnd(); };
+        utterance.onerror = () => { if (callbackOnEnd) callbackOnEnd(); };
+        synth.speak(utterance);
       }
     }
 
@@ -253,33 +298,20 @@
       const cards = getCardData();
       if (!cards || cards.length === 0) return;
 
-      let queueIndex = 0;
+      let index = 0;
 
-      function playNext() {
-        if (queueIndex >= cards.length) return;
-        const card = cards[queueIndex];
-        queueIndex++;
-
-        const cleaned = card.speakEng
-          .replace(/[-_]/g, ' ')
-          .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '')
-          .trim();
-
-        if (cleaned && typeof responsiveVoice !== 'undefined') {
-          responsiveVoice.speak(cleaned, "US English Female", { rate: 0.9, onend: playNext });
-        } else {
-          playNext();
-        }
+      function next() {
+        if (index >= cards.length) return;
+        const currentCard = cards[index];
+        index++;
+        speakText(currentCard.speakEng, next);
       }
 
-      if (typeof responsiveVoice !== 'undefined') {
-        responsiveVoice.cancel();
-      }
-      playNext();
+      next();
     }
 
     // ==========================================
-    // 🃏 연도 및 UI 카드 구성 로직 (기존 동일)
+    // 🃏 연도 및 카드 데이터 로직 (기존 유지)
     // ==========================================
     const numberWords = {
       0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine",
