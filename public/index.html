@@ -191,12 +191,14 @@
     let hideAllBlanksState = true;
 
     // ==========================================
-    // 🔊 오디오 동기화 Promise 기반 비동기 재생 엔진
+    // 🔊 세세한 디버그 로그 및 고성능 이중 TTS 엔진
     // ==========================================
     let currentAudio = null;
 
     function cleanPunctuation(str) {
+      if (!str) return '';
       return str
+        .replace(/<[^>]*>/g, '') // HTML 태그 완전 제거
         .replace(/[-_]/g, ' ')
         .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '')
         .trim();
@@ -204,45 +206,104 @@
 
     function stopAudio() {
       if (currentAudio) {
+        console.log("🔊 [TTS LOG] 이전 오디오 정지");
         currentAudio.pause();
         currentAudio.currentTime = 0;
         currentAudio = null;
       }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
     }
 
-    // 단일 오디오 조각 재생 함수 (Promise 반환)
+    // Web Speech API Fallback 함수
+    function speakWebSpeech(text, lang) {
+      return new Promise((resolve) => {
+        console.log(`🔊 [TTS LOG] WebSpeech API로 폴백 실행: "${text}" (${lang})`);
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang === 'ko' ? 'ko-KR' : 'en-US';
+        utterance.rate = 0.85;
+
+        utterance.onend = () => {
+          console.log(`✅ [TTS LOG] WebSpeech 재생 완료: "${text}"`);
+          resolve();
+        };
+        utterance.onerror = (e) => {
+          console.error(`❌ [TTS LOG] WebSpeech 에러:`, e);
+          resolve();
+        };
+
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+
+    // 오디오 조각 재생 함수 (Promise + 상세 디버깅 로그 + WebSpeech Fallback)
     function playAudioChunk(text, lang) {
       return new Promise((resolve) => {
         const cleaned = cleanPunctuation(text);
         if (!cleaned) {
+          console.warn("⚠️ [TTS LOG] 빈 텍스트 스킵");
           resolve();
           return;
         }
 
-        let url = '';
-        if (lang === 'ko') {
-          url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleaned)}&le=zh`;
-        } else {
-          url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleaned)}&type=2`;
-        }
+        console.log(`🔊 [TTS LOG] 청크 재생 준비: "${cleaned}" [언어: ${lang}]`);
 
-        currentAudio = new Audio(url);
-        currentAudio.onended = () => resolve();
-        currentAudio.onerror = () => resolve();
+        // Google Translate TTS URL
+        const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleaned)}&tl=${lang === 'ko' ? 'ko' : 'en'}&client=tw-ob`;
 
-        currentAudio.play().catch(() => resolve());
+        currentAudio = new Audio(googleUrl);
+        
+        let isResolved = false;
+        const safeResolve = () => {
+          if (!isResolved) {
+            isResolved = true;
+            resolve();
+          }
+        };
+
+        // 4초 내 타임아웃 보장 가드
+        const timeoutGuard = setTimeout(() => {
+          console.warn(`⏳ [TTS LOG] 오디오 재생 타임아웃 가드 발동: "${cleaned}"`);
+          safeResolve();
+        }, 4000);
+
+        currentAudio.onended = () => {
+          clearTimeout(timeoutGuard);
+          console.log(`✅ [TTS LOG] 구글 TTS 청크 재생 완료: "${cleaned}"`);
+          safeResolve();
+        };
+
+        currentAudio.onerror = async (err) => {
+          clearTimeout(timeoutGuard);
+          console.warn(`⚠️ [TTS LOG] 구글 TTS 로드 실패. WebSpeech API로 전환합니다.`, err);
+          await speakWebSpeech(cleaned, lang);
+          safeResolve();
+        };
+
+        currentAudio.play().catch(async (e) => {
+          clearTimeout(timeoutGuard);
+          console.warn(`⚠️ [TTS LOG] 구글 오디오 play() 차단됨. WebSpeech API로 전환합니다.`, e);
+          await speakWebSpeech(cleaned, lang);
+          safeResolve();
+        });
       });
     }
 
     async function speakText(text, callbackOnEnd) {
+      console.log(`\n========================================`);
+      console.log(`🔊 [TTS START] 문장 재생 요청: "${text}"`);
       stopAudio();
 
       const name = document.getElementById('userName').value.trim();
       const hasKoreanName = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
 
-      // 1. 이름이 한글인 경우: 영어 전반부 -> 한글 이름 -> 영어 후반부 순차 완전 보장
-      if (name && text.includes(name) && hasKoreanName) {
-        const parts = text.split(name);
+      const cleanFullText = text.replace(/<[^>]*>/g, '');
+
+      // 1. 이름이 한글로 입력되었고 문장에 이름이 포함된 경우
+      if (name && cleanFullText.includes(name) && hasKoreanName) {
+        console.log(`💡 [TTS LOG] 한글 이름 분리 재생 시작 (이름: ${name})`);
+        const parts = cleanFullText.split(name);
         const part1 = parts[0];
         const part2 = parts[1] || '';
 
@@ -250,17 +311,22 @@
         await playAudioChunk(name, 'ko');
         if (part2) await playAudioChunk(part2, 'en');
       } else {
-        // 2. 이름이 영어이거나 일반 문장인 경우: 전체 100% 영어 처리
-        await playAudioChunk(text, 'en');
+        // 2. 일반 영문 문장
+        console.log(`💡 [TTS LOG] 단일 영어 문장 재생`);
+        await playAudioChunk(cleanFullText, 'en');
       }
 
+      console.log(`🎉 [TTS END] 문장 재생 전체 완료`);
       if (callbackOnEnd) callbackOnEnd();
     }
 
     function speakCurrentCard() {
       const cards = getCardData();
-      if (cards.length > 0) {
+      if (cards.length > 0 && cards[currentCardIndex]) {
+        console.log(`📌 [USER CLICK] 현재 카드 ${cards[currentCardIndex].num}번 발음 듣기 클릭`);
         speakText(cards[currentCardIndex].speakEng);
+      } else {
+        console.error("❌ 현재 카드 데이터를 찾을 수 없습니다.");
       }
     }
 
@@ -268,11 +334,15 @@
       const cards = getCardData();
       if (!cards || cards.length === 0) return;
 
+      console.log(`▶️ [ALL SPEAK] 전체 연속 듣기 시작 (총 ${cards.length}개)`);
+
       for (let i = 0; i < cards.length; i++) {
+        console.log(`\n--- 연속 듣기 진행 중: (${i + 1}/${cards.length}) 카드 ${cards[i].num}번 ---`);
         await new Promise((resolve) => {
           speakText(cards[i].speakEng, resolve);
         });
       }
+      console.log(`🏁 [ALL SPEAK] 전체 연속 듣기 완료`);
     }
 
     // ==========================================
@@ -292,8 +362,8 @@
     }
 
     function formatYearSpeech(yearStr) {
-      if (!yearStr) return { speak: "", display: "" };
-      const cleanYear = yearStr.trim();
+      if (!yearStr) return { speak: "2007", display: "" };
+      const cleanYear = yearStr.toString().trim();
       const num = parseInt(cleanYear, 10);
 
       if (isNaN(num)) return { speak: cleanYear, display: "" };
@@ -322,6 +392,7 @@
     }
 
     window.onload = async function() {
+      console.log("🚀 페이지 로드 완료. 발표자 이름 복원 및 DB 조회 실행");
       const savedName = localStorage.getItem('speakerName');
       if (savedName) {
         document.getElementById('userName').value = savedName;
@@ -333,6 +404,7 @@
       try {
         const res = await fetch('/api/cuecards');
         dbCardsList = await res.json();
+        console.log("📥 DB 큐카드 수신 성공:", dbCardsList);
 
         const select = document.getElementById('dbCardSelect');
         select.innerHTML = '';
@@ -358,7 +430,7 @@
           return;
         }
       } catch (err) {
-        console.warn('DB Fetch fail, using fallback:', err);
+        console.warn('⚠️ DB Fetch 실패, 기본 샘플 카드로 대체합니다:', err);
         activeCardData = {
           v1: "the smartphone",
           v2: "Steve Jobs",
@@ -393,9 +465,9 @@
       const v1 = d.v1 || "the smartphone";
       const v2 = d.v2 || "Steve Jobs";
       const v4 = d.v4 || "2007";
-      const v5 = d.v5 || "carry heavy books";
+      const v5 = d.v5 || "carry heavy books and cameras";
       const v6 = d.v6 || "carry many devices";
-      const v7 = d.v7 || "study and communicate";
+      const v7 = d.v7 || "communicate and study easily";
 
       const yearSpeechInfo = formatYearSpeech(v4);
 
