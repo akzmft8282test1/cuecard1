@@ -192,18 +192,28 @@
     const synth = window.speechSynthesis;
     let englishVoice = null;
 
-    // 미국 영어(en-US) 전용 음성만 감지 및 지정
-    function loadVoices() {
-      if (!('speechSynthesis' in window)) return;
+    // 미국 영어(en-US) 전용 Voice 정밀 검색 함수
+    function getEnglishVoice() {
+      if (!('speechSynthesis' in window)) return null;
       const voices = synth.getVoices();
-      
-      englishVoice = voices.find(v => v.lang === 'en-US') || 
-                     voices.find(v => v.lang.startsWith('en')) || null;
+
+      // 1순위: 미국 영어(en-US) 전용 Voice
+      let voice = voices.find(v => v.lang === 'en-US' || v.lang === 'en_US');
+      // 2순위: 기타 영문(en-GB, en-AU 등)
+      if (!voice) voice = voices.find(v => v.lang.startsWith('en') || v.lang.startsWith('EN'));
+      // 3순위: Voice 이름에 English가 포함된 항목
+      if (!voice) voice = voices.find(v => v.name.toLowerCase().includes('english') || v.name.toLowerCase().includes('us'));
+
+      return voice;
+    }
+
+    function initVoices() {
+      englishVoice = getEnglishVoice();
     }
 
     if ('speechSynthesis' in window) {
-      loadVoices();
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+      initVoices();
+      window.speechSynthesis.onvoiceschanged = initVoices;
     }
 
     const numberWords = {
@@ -475,13 +485,14 @@
       }
     }
 
-    // 100% 영어(en-US) 전용 TTS 음성 재생 함수 (한국어 엔진 차단)
+    // 100% 영문(en-US) 음성만 사용하도록 구현한 발음 재생 함수
     function speakText(text) {
       synth.cancel();
 
-      if (!englishVoice) loadVoices();
+      // 영어 전용 음성 재점검
+      const targetVoice = getEnglishVoice();
 
-      // 특수기호(점, 하이픈 등) 무음 처리
+      // 특수기호(점, 하이픈 등) 제거
       const cleaned = text
         .replace(/[-_]/g, ' ')
         .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '');
@@ -489,11 +500,13 @@
       if (!cleaned.trim()) return;
 
       const utterance = new SpeechSynthesisUtterance(cleaned);
+      
+      // 언어 코드를 반드시 'en-US'로 지정
       utterance.lang = 'en-US';
       utterance.rate = 0.85;
 
-      if (englishVoice) {
-        utterance.voice = englishVoice;
+      if (targetVoice) {
+        utterance.voice = targetVoice;
       }
 
       synth.speak(utterance);
