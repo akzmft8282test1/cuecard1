@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>영어 말하기 수행평가 대비 큐카드 암기 연습기</title>
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -191,7 +191,7 @@
     let hideAllBlanksState = true;
 
     // ==========================================
-    // 🔊 온디맨드(On-Demand) 개별 버튼 전용 Edge TTS 엔진
+    // 🔊 이중 보장(Edge TTS + Web Speech Fallback) 오디오 엔진
     // ==========================================
     let currentAudio = null;
 
@@ -200,6 +200,9 @@
         currentAudio.pause();
         currentAudio.currentTime = 0;
         currentAudio = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
       }
     }
 
@@ -212,7 +215,22 @@
         .trim();
     }
 
-    // 서버에 온디맨드로 단일 조각 음성 요청 후 재생
+    // 브라우저 내장 Web Speech API (안전 폴백)
+    function speakFallbackWebSpeech(text, lang) {
+      return new Promise((resolve) => {
+        console.log(`🔊 [WebSpeech Fallback] "${text}" (${lang})`);
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang === 'ko' ? 'ko-KR' : 'en-US';
+        utterance.rate = 0.9;
+        
+        utterance.onend = () => resolve();
+        utterance.onerror = () => resolve();
+
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+
+    // 서버 Edge TTS 요청 및 실패 시 내장 음성으로 전환
     function fetchAndPlayTTS(text, lang) {
       return new Promise((resolve) => {
         const cleaned = cleanPunctuation(text);
@@ -232,31 +250,32 @@
           }
         };
 
-        const timeout = setTimeout(() => {
-          console.warn(`⏳ 타임아웃 완료 처리: "${cleaned}"`);
+        const timeout = setTimeout(async () => {
+          console.warn(`⏳ [TTS] 서버 응답 타임아웃, WebSpeech로 전환`);
+          await speakFallbackWebSpeech(cleaned, lang);
           done();
-        }, 12000);
+        }, 6000);
 
         currentAudio.onended = () => {
           clearTimeout(timeout);
           done();
         };
 
-        currentAudio.onerror = (e) => {
+        currentAudio.onerror = async () => {
           clearTimeout(timeout);
-          console.error(`❌ TTS 재생 실패:`, e);
+          console.warn(`⚠️ [TTS] 서버 오디오 에러 발생, WebSpeech API로 전환합니다.`);
+          await speakFallbackWebSpeech(cleaned, lang);
           done();
         };
 
-        currentAudio.play().catch((err) => {
+        currentAudio.play().catch(async () => {
           clearTimeout(timeout);
-          console.error(`❌ play() 오류:`, err);
+          await speakFallbackWebSpeech(cleaned, lang);
           done();
         });
       });
     }
 
-    // 해당 버튼 클릭시에만 개별 문장 변환 및 재생
     async function playCardTTS(text, btnElement) {
       stopAudio();
 
@@ -271,7 +290,6 @@
       const hasKoreanName = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
       const cleanFullText = text.replace(/<[^>]*>/g, '');
 
-      // 한글 이름이 포함되어 있는 경우: [영어 전반] -> [한글 이름] -> [영어 후반]
       if (name && cleanFullText.includes(name) && hasKoreanName) {
         const parts = cleanFullText.split(name);
         const part1 = parts[0];
@@ -396,7 +414,7 @@
           return;
         }
       } catch (err) {
-        console.warn('⚠️ DB Fetch 실패, 기본 샘플 카드로 대체:', err);
+        console.warn('⚠️ DB Fetch 실패:', err);
         activeCardData = {
           v1: "the smartphone",
           v2: "Steve Jobs",
