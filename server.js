@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
-const { EdgeTTS } = require('edge-tts-node');
+const edgeTTS = require('edge-tts-node');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,12 +33,14 @@ app.get('/api/tts', async (req, res) => {
   console.log(`🎙️ [SERVER Edge-TTS] 음성 합성 시작: "${text}" (Voice: ${voice})`);
 
   try {
-    const tts = new EdgeTTS({ voice });
-    const result = await tts.synthesize(text);
-    const audioBuffer = await result.audioBuffer();
+    // edge-tts-node 공식 API 호출 방식
+    const audioBuffer = await edgeTTS({
+      text: text,
+      voice: voice
+    });
 
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'public, max-age=3600'); // 빠르게 재재생하도록 캐싱 설정
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     
     res.send(audioBuffer);
   } catch (error) {
