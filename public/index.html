@@ -193,11 +193,18 @@
     let englishVoice = null;
     let koreanVoice = null;
 
+    // 브라우저 TTS Voice 검색 및 강제 매핑
     function loadVoices() {
       if (!('speechSynthesis' in window)) return;
       const voices = synth.getVoices();
-      englishVoice = voices.find(v => v.lang === 'en-US' || v.lang.startsWith('en')) || null;
-      koreanVoice = voices.find(v => v.lang === 'ko-KR' || v.lang.startsWith('ko')) || null;
+      
+      // 미국 영어 Voice 우선 선택 (Google US English, Samantha, Alex 등)
+      englishVoice = voices.find(v => v.lang === 'en-US') || 
+                     voices.find(v => v.lang.startsWith('en')) || null;
+
+      // 한국어 Voice 선택
+      koreanVoice = voices.find(v => v.lang === 'ko-KR') || 
+                    voices.find(v => v.lang.startsWith('ko')) || null;
     }
 
     if ('speechSynthesis' in window) {
@@ -474,17 +481,20 @@
       }
     }
 
-    // TTS 기호(점, 하이픈 등) 제거 및 이름 언어 자동 감지 분리 읽기
+    // 특수기호 제거 및 영어/한글 TTS 강제 지정 보강 함수
     function speakText(text) {
       synth.cancel();
 
+      // 최신 음성 목록 재확인
+      if (!englishVoice) loadVoices();
+
       const name = document.getElementById('userName').value.trim();
 
-      // 문장에서 TTS가 기호 이름을 읽지 않도록 점(.), 하이픈(-) 등의 특수기호 제거
+      // 특수기호(점, 하이픈 등) 무음 처리
       const cleanSpeechText = (str) => {
         return str
-          .replace(/[-_]/g, ' ')           // 하이픈, 언더스코어를 공백으로 변환
-          .replace(/[.,/#!$%^&*;:{}=\`~()]/g, ''); // 마침표, 쉼표 등 기호 완전 제거
+          .replace(/[-_]/g, ' ')
+          .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '');
       };
 
       if (name && text.includes(name)) {
@@ -492,7 +502,7 @@
         const namePattern = new RegExp(`(${escapeRegex(name)})`, 'gi');
         const parts = text.split(namePattern);
 
-        // 한글 포함 여부 체크 (한글 문자열 정규식)
+        // 이름에 한글이 포함되어 있는지 판별
         const hasKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
 
         parts.forEach(part => {
@@ -504,18 +514,16 @@
 
           if (part.toLowerCase() === name.toLowerCase()) {
             if (hasKorean) {
-              // 이름이 한글인 경우 -> ko-KR 발음
               utterance.lang = 'ko-KR';
               utterance.rate = 0.9;
               if (koreanVoice) utterance.voice = koreanVoice;
             } else {
-              // 이름이 영문인 경우 -> en-US 발음
               utterance.lang = 'en-US';
               utterance.rate = 0.85;
               if (englishVoice) utterance.voice = englishVoice;
             }
           } else {
-            // 나머지 본문 영어 문장 -> en-US 발음
+            // 본문 영어 문장 -> en-US 음성 엔진 강제 지정
             utterance.lang = 'en-US';
             utterance.rate = 0.85;
             if (englishVoice) utterance.voice = englishVoice;
@@ -524,11 +532,13 @@
           synth.speak(utterance);
         });
       } else {
+        // 이름이 포함되지 않은 일반 영어 문장
         const cleaned = cleanSpeechText(text);
         const utterance = new SpeechSynthesisUtterance(cleaned);
         utterance.lang = 'en-US';
         utterance.rate = 0.85;
         if (englishVoice) utterance.voice = englishVoice;
+
         synth.speak(utterance);
       }
     }
