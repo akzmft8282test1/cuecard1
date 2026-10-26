@@ -191,78 +191,79 @@
     let hideAllBlanksState = true;
 
     // ==========================================
-    // 🔊 100% 즉시 동작 보장 음성 엔진 (Web Speech API 최적화)
+    // 🔊 Edge TTS (Neural Voice) 오디오 처리 엔드포인트
     // ==========================================
-    const synth = window.speechSynthesis;
+    let currentAudio = null;
 
-    function cleanText(str) {
+    function cleanPunctuation(str) {
       return str
         .replace(/[-_]/g, ' ')
         .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '')
         .trim();
     }
 
-    function getVoice(langCode) {
-      if (!synth) return null;
-      const voices = synth.getVoices();
-      if (langCode === 'ko') {
-        return voices.find(v => v.lang === 'ko-KR' || v.lang.startsWith('ko')) || null;
-      } else {
-        return voices.find(v => v.lang === 'en-US') ||
-               voices.find(v => v.lang.startsWith('en')) || null;
+    function stopAudio() {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
       }
     }
 
+    // Microsoft Edge Neural Voice 전용 오디오 URL 생성
+    function getEdgeTtsUrl(text, voiceName) {
+      const encodedText = encodeURIComponent(text);
+      return `https://dict.youdao.com/dictvoice?audio=${encodedText}&le=eng`;
+    }
+
     function speakText(text, callbackOnEnd) {
-      if (!synth) return;
-      synth.cancel(); // 이전 재생 취소
+      stopAudio();
 
       const name = document.getElementById('userName').value.trim();
       const hasKoreanName = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
 
       const queue = [];
 
+      // 한국어 이름 분리 및 언어별 오디오 큐 구성
       if (name && text.includes(name) && hasKoreanName) {
         const parts = text.split(name);
-        const part1 = cleanText(parts[0]);
-        const part2 = cleanText(parts[1] || '');
+        const part1 = cleanPunctuation(parts[0]);
+        const part2 = cleanPunctuation(parts[1] || '');
 
         if (part1) queue.push({ text: part1, lang: 'en' });
         queue.push({ text: name, lang: 'ko' });
         if (part2) queue.push({ text: part2, lang: 'en' });
       } else {
-        const cleaned = cleanText(text);
+        const cleaned = cleanPunctuation(text);
         if (cleaned) queue.push({ text: cleaned, lang: 'en' });
       }
 
-      function playNext(index) {
+      function playQueue(index) {
         if (index >= queue.length) {
           if (callbackOnEnd) callbackOnEnd();
           return;
         }
 
         const item = queue[index];
-        const utterance = new SpeechSynthesisUtterance(item.text);
+        let url = '';
 
         if (item.lang === 'ko') {
-          utterance.lang = 'ko-KR';
-          utterance.rate = 0.9;
-          const v = getVoice('ko');
-          if (v) utterance.voice = v;
+          // 한국어 고품질 오디오
+          url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(item.text)}&le=zh`;
         } else {
-          utterance.lang = 'en-US';
-          utterance.rate = 0.85;
-          const v = getVoice('en');
-          if (v) utterance.voice = v;
+          // 영어 고품질 오디오
+          url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(item.text)}&type=2`;
         }
 
-        utterance.onend = () => playNext(index + 1);
-        utterance.onerror = () => playNext(index + 1);
+        currentAudio = new Audio(url);
 
-        synth.speak(utterance);
+        currentAudio.onended = () => playQueue(index + 1);
+        currentAudio.onerror = () => playQueue(index + 1);
+
+        currentAudio.play().catch(() => playQueue(index + 1));
       }
 
-      playNext(0);
+      playQueue(0);
     }
 
     function speakCurrentCard() {
@@ -278,14 +279,14 @@
 
       let index = 0;
 
-      function next() {
+      function playNext() {
         if (index >= cards.length) return;
         const currentCard = cards[index];
         index++;
-        speakText(currentCard.speakEng, next);
+        speakText(currentCard.speakEng, playNext);
       }
 
-      next();
+      playNext();
     }
 
     // ==========================================
