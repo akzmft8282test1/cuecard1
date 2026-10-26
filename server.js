@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
-const { EdgeTTS } = require('edge-tts-universal'); //
+const { EdgeTTS } = require('edge-tts-universal'); // 라이브러리 로드
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,10 +16,6 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_KEY || '');
 
-// 🔥 [해결 핵심] EdgeTTS 인스턴스를 라우터 외부(글로벌 변수)에서 딱 한 번만 생성합니다.
-// 매번 new EdgeTTS()를 하면 웹소켓 연결이 꼬여서 중간 문장들이 안 나옵니다.
-const ttsInstance = new EdgeTTS(); 
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -32,14 +28,24 @@ app.get('/api/tts', async (req, res) => {
     return res.status(400).send("Text parameter is required");
   }
 
+  // 1. 요청된 lang에 맞춰 정확한 AI 성우 매핑
   const voice = lang === 'ko' ? 'ko-KR-SunHiNeural' : 'en-US-JennyNeural';
   const cleanText = text.replace(/<[^>]*>/g, '').trim();
 
   console.log(`🎙️ [SERVER Edge-TTS] 음성 합성 요청: "${cleanText}" (Voice: ${voice})`);
 
   try {
-    // 💡 미리 생성된 글로벌 ttsInstance를 사용하고, 인자 값으로 voice 옵션을 전달합니다.
-    const result = await ttsInstance.synthesize(cleanText, voice);
+    // 2. [가장 중요] 해당 라이브러리의 안정적인 호출 규격에 맞춰 인스턴스 생성 및 옵션 주입
+    const tts = new EdgeTTS({
+      voice: voice,
+      lang: lang === 'ko' ? 'ko-KR' : 'en-US',
+      outputFormat: 'audio-24khz-48kbps-mono-silk'
+    });
+
+    // 3. 문장 합성 실행
+    const result = await tts.synthesize(cleanText);
+    
+    // 4. 버퍼 데이터 변환 및 응답 전송
     const audioBuffer = Buffer.from(await result.arrayBuffer());
 
     res.setHeader('Content-Type', 'audio/mpeg');
@@ -51,15 +57,18 @@ app.get('/api/tts', async (req, res) => {
   } catch (error) {
     console.error("❌ [SERVER Edge-TTS] 에러 발생:", error.message);
     
-    // 만약 edge-tts-universal 버전에 따라 인자값 형식이 다를 경우를 대비한 Fallback 예외 처리
+    // 버전 호환성을 위한 2차 예외 처리 (Fallback fallback)
     try {
-      const fallbackTts = new EdgeTTS({ voice: voice });
-      const result = await fallbackTts.synthesize(cleanText);
-      const audioBuffer = Buffer.from(await result.arrayBuffer());
+      const { MsEdgeTTS } = require('edge-tts-universal');
+      const fallbackTts = new MsEdgeTTS();
+      fallbackTts.setMetadata(voice, 'audio-24khz-48kbps-mono-silk');
+      
+      const readableStream = fallbackTts.toStream(cleanText);
       res.setHeader('Content-Type', 'audio/mpeg');
-      return res.send(audioBuffer);
+      readableStream.pipe(res);
+      console.log(`✅ [SERVER Edge-TTS Fallback] 스트림 전송 완료`);
     } catch (fallbackError) {
-      console.error("❌ [SERVER Edge-TTS] Fallback도 실패:", fallbackError.message);
+      console.error("❌ [SERVER Edge-TTS] 완전 실패:", fallbackError.message);
       res.status(500).send("TTS_ERROR");
     }
   }
@@ -97,7 +106,7 @@ app.post('/api/cuecards', async (req, res) => {
     .select();
 
   if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json({ success: true, card: data[0] });
+  res.status(201).json({ success: true, card: data });
 });
 
 app.delete('/api/cuecards/:id', async (req, res) => {
