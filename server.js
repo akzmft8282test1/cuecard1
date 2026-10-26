@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const { MsEdgeTTS, OUTPUT_FORMAT } = require('ms-edge-tts');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,33 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 🔊 Edge TTS API 엔드포인트
+app.get('/api/tts', async (req, res) => {
+  const { text, lang } = req.query;
+
+  if (!text) {
+    return res.status(400).json({ error: "Text parameter is required" });
+  }
+
+  const voiceName = lang === 'ko' ? 'ko-KR-SunHiNeural' : 'en-US-JennyNeural';
+  console.log(`🎙️ [SERVER Edge-TTS] 음성 합성 시작: "${text}" (Voice: ${voiceName})`);
+
+  try {
+    const tts = new MsEdgeTTS();
+    await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_STEREO_MD);
+    
+    const readable = tts.toStream(text);
+    
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // 캐싱을 통한 빠른 재재생
+    
+    readable.pipe(res);
+  } catch (error) {
+    console.error("❌ [SERVER Edge-TTS] 합성 에러:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 라우트 설정
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -28,7 +56,6 @@ app.get('/add', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'add.html'));
 });
 
-// /del 전용 삭제 페이지 라우트 추가
 app.get('/del', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'del.html'));
 });
