@@ -191,7 +191,7 @@
     let hideAllBlanksState = true;
 
     // ==========================================
-    // 🔊 Edge TTS (Neural Voice) 오디오 처리 엔드포인트
+    // 🔊 오디오 동기화 Promise 기반 비동기 재생 엔진
     // ==========================================
     let currentAudio = null;
 
@@ -210,60 +210,51 @@
       }
     }
 
-    // Microsoft Edge Neural Voice 전용 오디오 URL 생성
-    function getEdgeTtsUrl(text, voiceName) {
-      const encodedText = encodeURIComponent(text);
-      return `https://dict.youdao.com/dictvoice?audio=${encodedText}&le=eng`;
+    // 단일 오디오 조각 재생 함수 (Promise 반환)
+    function playAudioChunk(text, lang) {
+      return new Promise((resolve) => {
+        const cleaned = cleanPunctuation(text);
+        if (!cleaned) {
+          resolve();
+          return;
+        }
+
+        let url = '';
+        if (lang === 'ko') {
+          url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleaned)}&le=zh`;
+        } else {
+          url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleaned)}&type=2`;
+        }
+
+        currentAudio = new Audio(url);
+        currentAudio.onended = () => resolve();
+        currentAudio.onerror = () => resolve();
+
+        currentAudio.play().catch(() => resolve());
+      });
     }
 
-    function speakText(text, callbackOnEnd) {
+    async function speakText(text, callbackOnEnd) {
       stopAudio();
 
       const name = document.getElementById('userName').value.trim();
       const hasKoreanName = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
 
-      const queue = [];
-
-      // 한국어 이름 분리 및 언어별 오디오 큐 구성
+      // 1. 이름이 한글인 경우: 영어 전반부 -> 한글 이름 -> 영어 후반부 순차 완전 보장
       if (name && text.includes(name) && hasKoreanName) {
         const parts = text.split(name);
-        const part1 = cleanPunctuation(parts[0]);
-        const part2 = cleanPunctuation(parts[1] || '');
+        const part1 = parts[0];
+        const part2 = parts[1] || '';
 
-        if (part1) queue.push({ text: part1, lang: 'en' });
-        queue.push({ text: name, lang: 'ko' });
-        if (part2) queue.push({ text: part2, lang: 'en' });
+        if (part1) await playAudioChunk(part1, 'en');
+        await playAudioChunk(name, 'ko');
+        if (part2) await playAudioChunk(part2, 'en');
       } else {
-        const cleaned = cleanPunctuation(text);
-        if (cleaned) queue.push({ text: cleaned, lang: 'en' });
+        // 2. 이름이 영어이거나 일반 문장인 경우: 전체 100% 영어 처리
+        await playAudioChunk(text, 'en');
       }
 
-      function playQueue(index) {
-        if (index >= queue.length) {
-          if (callbackOnEnd) callbackOnEnd();
-          return;
-        }
-
-        const item = queue[index];
-        let url = '';
-
-        if (item.lang === 'ko') {
-          // 한국어 고품질 오디오
-          url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(item.text)}&le=zh`;
-        } else {
-          // 영어 고품질 오디오
-          url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(item.text)}&type=2`;
-        }
-
-        currentAudio = new Audio(url);
-
-        currentAudio.onended = () => playQueue(index + 1);
-        currentAudio.onerror = () => playQueue(index + 1);
-
-        currentAudio.play().catch(() => playQueue(index + 1));
-      }
-
-      playQueue(0);
+      if (callbackOnEnd) callbackOnEnd();
     }
 
     function speakCurrentCard() {
@@ -273,24 +264,19 @@
       }
     }
 
-    function speakAll() {
+    async function speakAll() {
       const cards = getCardData();
       if (!cards || cards.length === 0) return;
 
-      let index = 0;
-
-      function playNext() {
-        if (index >= cards.length) return;
-        const currentCard = cards[index];
-        index++;
-        speakText(currentCard.speakEng, playNext);
+      for (let i = 0; i < cards.length; i++) {
+        await new Promise((resolve) => {
+          speakText(cards[i].speakEng, resolve);
+        });
       }
-
-      playNext();
     }
 
     // ==========================================
-    // 🃏 연도 및 카드 데이터 처리 로직
+    // 🃏 연도 및 13개 전체 큐카드 데이터 구성
     // ==========================================
     const numberWords = {
       0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine",
@@ -351,32 +337,49 @@
         const select = document.getElementById('dbCardSelect');
         select.innerHTML = '';
 
-        if (dbCardsList.length === 0) {
-          select.innerHTML = '<option value="">(등록된 큐카드가 없습니다)</option>';
-          activeCardData = null;
+        if (!dbCardsList || dbCardsList.length === 0) {
+          select.innerHTML = '<option value="">(기본 샘플 큐카드 사용 중)</option>';
+          activeCardData = {
+            v1: "the smartphone",
+            v2: "Steve Jobs",
+            v4: "2007",
+            v5: "carry heavy books and cameras",
+            v6: "carry many devices",
+            v7: "communicate and study easily"
+          };
         } else {
           dbCardsList.forEach((card, index) => {
             const opt = document.createElement('option');
             opt.value = index;
-            opt.textContent = card.title;
+            opt.textContent = card.title || `큐카드 ${index + 1}`;
             select.appendChild(opt);
           });
           loadCardFromDB(0);
+          return;
         }
       } catch (err) {
-        console.error('Error fetching cards:', err);
+        console.warn('DB Fetch fail, using fallback:', err);
+        activeCardData = {
+          v1: "the smartphone",
+          v2: "Steve Jobs",
+          v4: "2007",
+          v5: "carry heavy books and cameras",
+          v6: "carry many devices",
+          v7: "communicate and study easily"
+        };
       }
+      updateCards();
     }
 
     function loadCardFromDB(index) {
-      if (dbCardsList.length === 0) return;
+      if (!dbCardsList || dbCardsList.length === 0) return;
       activeCardData = dbCardsList[index];
 
-      const yearInfo = formatYearSpeech(activeCardData.v4);
+      const yearInfo = formatYearSpeech(activeCardData.v4 || '2007');
       document.getElementById('infoContent').innerHTML = `
-        <p><strong>발명품:</strong> ${activeCardData.v1}</p>
-        <p><strong>발명가:</strong> ${activeCardData.v2}</p>
-        <p><strong>연도:</strong> ${activeCardData.v4} <span class="text-indigo-600 font-semibold">(${yearInfo.speak})</span></p>
+        <p><strong>발명품:</strong> ${activeCardData.v1 || ''}</p>
+        <p><strong>발명가:</strong> ${activeCardData.v2 || ''}</p>
+        <p><strong>연도:</strong> ${activeCardData.v4 || ''} <span class="text-indigo-600 font-semibold">(${yearInfo.speak})</span></p>
       `;
 
       currentCardIndex = 0;
@@ -384,15 +387,15 @@
     }
 
     function getCardData() {
-      const name = document.getElementById('userName').value.trim() || '[이름]';
-      if (!activeCardData) return [];
+      const name = document.getElementById('userName').value.trim() || 'Minsoo';
+      const d = activeCardData || {};
 
-      const v1 = activeCardData.v1;
-      const v2 = activeCardData.v2;
-      const v4 = activeCardData.v4;
-      const v5 = activeCardData.v5;
-      const v6 = activeCardData.v6;
-      const v7 = activeCardData.v7;
+      const v1 = d.v1 || "the smartphone";
+      const v2 = d.v2 || "Steve Jobs";
+      const v4 = d.v4 || "2007";
+      const v5 = d.v5 || "carry heavy books";
+      const v6 = d.v6 || "carry many devices";
+      const v7 = d.v7 || "study and communicate";
 
       const yearSpeechInfo = formatYearSpeech(v4);
 
