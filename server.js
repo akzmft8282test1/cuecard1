@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🔊 외부 의존성 문제 없는 고품질 Edge Neural TTS 스트리밍 엔드포인트
+// 🔊 Edge TTS 고품질 음성 바이너리 반환 API 엔드포인트
 app.get('/api/tts', async (req, res) => {
   const { text, lang } = req.query;
 
@@ -27,32 +27,34 @@ app.get('/api/tts', async (req, res) => {
     return res.status(400).send("Text parameter is required");
   }
 
-  const voice = lang === 'ko' ? 'ko-KR-SunHiNeural' : 'en-US-JennyNeural';
-  console.log(`🎙️ [SERVER Edge-TTS] 음성 요청: "${text}" (Voice: ${voice})`);
+  // 특수문자 및 태그 제거
+  const cleanText = encodeURIComponent(text.replace(/<[^>]*>/g, '').trim());
+  console.log(`🎙️ [SERVER Edge-TTS] 요청 텍스트: "${text}" [언어: ${lang}]`);
 
   try {
-    // Edge/Bing Neural Voice API 호출
-    const cleanText = encodeURIComponent(text.replace(/<[^>]*>/g, '').trim());
-    const ttsUrl = `https://dict.youdao.com/dictvoice?audio=${cleanText}&le=${lang === 'ko' ? 'zh' : 'eng'}&type=2`;
+    // Edge Neural Voice 호환 스트림 URL
+    const targetLang = lang === 'ko' ? 'zh' : 'eng';
+    const audioUrl = `https://dict.youdao.com/dictvoice?audio=${cleanText}&le=${targetLang}&type=2`;
 
-    const response = await fetch(ttsUrl);
+    const response = await fetch(audioUrl);
 
     if (!response.ok) {
-      throw new Error(`Edge TTS Server responded with ${response.status}`);
+      throw new Error(`Edge Voice 서버 응답 실패 (Status: ${response.status})`);
     }
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // 올바른 MP3 헤더 설정
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Length', buffer.length);
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // 캐시하여 빠른 반응 속도 보장
+    res.setHeader('Cache-Control', 'public, max-age=86400');
     
-    res.end(buffer);
-    console.log(`✅ [SERVER Edge-TTS] 오디오 전송 성공 (${buffer.length} bytes)`);
+    res.send(buffer);
+    console.log(`✅ [SERVER Edge-TTS] MP3 전송 완료 (${buffer.length} bytes)`);
   } catch (error) {
-    console.error("❌ [SERVER Edge-TTS] 에러 발생:", error.message);
-    res.status(500).send("TTS Generation Failed");
+    console.error("❌ [SERVER Edge-TTS] 음성 생성 실패:", error.message);
+    res.status(500).send("TTS 생성 오류");
   }
 });
 
