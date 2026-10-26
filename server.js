@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
-const { MsEdgeTTS, OUTPUT_FORMAT } = require('ms-edge-tts');
+const { EdgeTTS } = require('edge-tts-node');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,19 +28,19 @@ app.get('/api/tts', async (req, res) => {
     return res.status(400).json({ error: "Text parameter is required" });
   }
 
-  const voiceName = lang === 'ko' ? 'ko-KR-SunHiNeural' : 'en-US-JennyNeural';
-  console.log(`🎙️ [SERVER Edge-TTS] 음성 합성 시작: "${text}" (Voice: ${voiceName})`);
+  // 한국어: ko-KR-SunHiNeural / 영어: en-US-JennyNeural
+  const voice = lang === 'ko' ? 'ko-KR-SunHiNeural' : 'en-US-JennyNeural';
+  console.log(`🎙️ [SERVER Edge-TTS] 음성 합성 시작: "${text}" (Voice: ${voice})`);
 
   try {
-    const tts = new MsEdgeTTS();
-    await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_STEREO_MD);
-    
-    const readable = tts.toStream(text);
-    
+    const tts = new EdgeTTS({ voice });
+    const result = await tts.synthesize(text);
+    const audioBuffer = await result.audioBuffer();
+
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'public, max-age=3600'); // 캐싱을 통한 빠른 재재생
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // 빠르게 재재생하도록 캐싱 설정
     
-    readable.pipe(res);
+    res.send(audioBuffer);
   } catch (error) {
     console.error("❌ [SERVER Edge-TTS] 합성 에러:", error);
     res.status(500).json({ error: error.message });
