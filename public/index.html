@@ -191,7 +191,7 @@
     let hideAllBlanksState = true;
 
     // ==========================================
-    // 🔊 세세한 디버그 로그 및 고성능 이중 TTS 엔진
+    // 🔊 서버 Edge TTS 연동 비동기 오디오 엔진
     // ==========================================
     let currentAudio = null;
 
@@ -206,54 +206,28 @@
 
     function stopAudio() {
       if (currentAudio) {
-        console.log("🔊 [TTS LOG] 이전 오디오 정지");
+        console.log("🔊 [CLIENT TTS] 이전 오디오 정지");
         currentAudio.pause();
         currentAudio.currentTime = 0;
         currentAudio = null;
       }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
     }
 
-    // Web Speech API Fallback 함수
-    function speakWebSpeech(text, lang) {
-      return new Promise((resolve) => {
-        console.log(`🔊 [TTS LOG] WebSpeech API로 폴백 실행: "${text}" (${lang})`);
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = lang === 'ko' ? 'ko-KR' : 'en-US';
-        utterance.rate = 0.85;
-
-        utterance.onend = () => {
-          console.log(`✅ [TTS LOG] WebSpeech 재생 완료: "${text}"`);
-          resolve();
-        };
-        utterance.onerror = (e) => {
-          console.error(`❌ [TTS LOG] WebSpeech 에러:`, e);
-          resolve();
-        };
-
-        window.speechSynthesis.speak(utterance);
-      });
-    }
-
-    // 오디오 조각 재생 함수 (Promise + 상세 디버깅 로그 + WebSpeech Fallback)
+    // 서버의 Edge TTS endpoint (/api/tts) 호출 함수
     function playAudioChunk(text, lang) {
       return new Promise((resolve) => {
         const cleaned = cleanPunctuation(text);
         if (!cleaned) {
-          console.warn("⚠️ [TTS LOG] 빈 텍스트 스킵");
+          console.warn("⚠️ [CLIENT TTS] 빈 텍스트 스킵");
           resolve();
           return;
         }
 
-        console.log(`🔊 [TTS LOG] 청크 재생 준비: "${cleaned}" [언어: ${lang}]`);
+        console.log(`🔊 [CLIENT TTS] 서버에 음성 요청: "${cleaned}" [언어: ${lang}]`);
 
-        // Google Translate TTS URL
-        const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleaned)}&tl=${lang === 'ko' ? 'ko' : 'en'}&client=tw-ob`;
+        const ttsApiUrl = `/api/tts?text=${encodeURIComponent(cleaned)}&lang=${lang}`;
+        currentAudio = new Audio(ttsApiUrl);
 
-        currentAudio = new Audio(googleUrl);
-        
         let isResolved = false;
         const safeResolve = () => {
           if (!isResolved) {
@@ -262,29 +236,26 @@
           }
         };
 
-        // 4초 내 타임아웃 보장 가드
         const timeoutGuard = setTimeout(() => {
-          console.warn(`⏳ [TTS LOG] 오디오 재생 타임아웃 가드 발동: "${cleaned}"`);
+          console.warn(`⏳ [CLIENT TTS] 오디오 재생 타임아웃 가드 발동: "${cleaned}"`);
           safeResolve();
-        }, 4000);
+        }, 8000);
 
         currentAudio.onended = () => {
           clearTimeout(timeoutGuard);
-          console.log(`✅ [TTS LOG] 구글 TTS 청크 재생 완료: "${cleaned}"`);
+          console.log(`✅ [CLIENT TTS] 재생 완료: "${cleaned}"`);
           safeResolve();
         };
 
-        currentAudio.onerror = async (err) => {
+        currentAudio.onerror = (err) => {
           clearTimeout(timeoutGuard);
-          console.warn(`⚠️ [TTS LOG] 구글 TTS 로드 실패. WebSpeech API로 전환합니다.`, err);
-          await speakWebSpeech(cleaned, lang);
+          console.error(`❌ [CLIENT TTS] 서버 음성 스트리밍 에러:`, err);
           safeResolve();
         };
 
-        currentAudio.play().catch(async (e) => {
+        currentAudio.play().catch((e) => {
           clearTimeout(timeoutGuard);
-          console.warn(`⚠️ [TTS LOG] 구글 오디오 play() 차단됨. WebSpeech API로 전환합니다.`, e);
-          await speakWebSpeech(cleaned, lang);
+          console.error(`❌ [CLIENT TTS] Audio play() 실패:`, e);
           safeResolve();
         });
       });
@@ -297,12 +268,11 @@
 
       const name = document.getElementById('userName').value.trim();
       const hasKoreanName = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
-
       const cleanFullText = text.replace(/<[^>]*>/g, '');
 
-      // 1. 이름이 한글로 입력되었고 문장에 이름이 포함된 경우
+      // 한글 이름 포함 시 분리 재생
       if (name && cleanFullText.includes(name) && hasKoreanName) {
-        console.log(`💡 [TTS LOG] 한글 이름 분리 재생 시작 (이름: ${name})`);
+        console.log(`💡 [CLIENT TTS] 한글 이름 분리 순차 재생 시작 (이름: ${name})`);
         const parts = cleanFullText.split(name);
         const part1 = parts[0];
         const part2 = parts[1] || '';
@@ -311,22 +281,19 @@
         await playAudioChunk(name, 'ko');
         if (part2) await playAudioChunk(part2, 'en');
       } else {
-        // 2. 일반 영문 문장
-        console.log(`💡 [TTS LOG] 단일 영어 문장 재생`);
+        console.log(`💡 [CLIENT TTS] 단일 영어 문장 재생`);
         await playAudioChunk(cleanFullText, 'en');
       }
 
-      console.log(`🎉 [TTS END] 문장 재생 전체 완료`);
+      console.log(`🎉 [TTS END] 문장 재생 완료`);
       if (callbackOnEnd) callbackOnEnd();
     }
 
     function speakCurrentCard() {
       const cards = getCardData();
       if (cards.length > 0 && cards[currentCardIndex]) {
-        console.log(`📌 [USER CLICK] 현재 카드 ${cards[currentCardIndex].num}번 발음 듣기 클릭`);
+        console.log(`📌 [USER CLICK] 카드 ${cards[currentCardIndex].num}번 발음 듣기`);
         speakText(cards[currentCardIndex].speakEng);
-      } else {
-        console.error("❌ 현재 카드 데이터를 찾을 수 없습니다.");
       }
     }
 
@@ -337,7 +304,7 @@
       console.log(`▶️ [ALL SPEAK] 전체 연속 듣기 시작 (총 ${cards.length}개)`);
 
       for (let i = 0; i < cards.length; i++) {
-        console.log(`\n--- 연속 듣기 진행 중: (${i + 1}/${cards.length}) 카드 ${cards[i].num}번 ---`);
+        console.log(`\n--- 연속 듣기 진행: (${i + 1}/${cards.length}) 카드 ${cards[i].num}번 ---`);
         await new Promise((resolve) => {
           speakText(cards[i].speakEng, resolve);
         });
@@ -404,7 +371,6 @@
       try {
         const res = await fetch('/api/cuecards');
         dbCardsList = await res.json();
-        console.log("📥 DB 큐카드 수신 성공:", dbCardsList);
 
         const select = document.getElementById('dbCardSelect');
         select.innerHTML = '';
