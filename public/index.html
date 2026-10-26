@@ -191,7 +191,7 @@
     let hideAllBlanksState = true;
 
     // ==========================================
-    // 🔊 서버 Edge TTS 연동 비동기 오디오 엔진
+    // 🔊 서버 Edge TTS 연동 정교한 오디오 재생 엔진
     // ==========================================
     let currentAudio = null;
 
@@ -206,73 +206,69 @@
 
     function stopAudio() {
       if (currentAudio) {
-        console.log("🔊 [CLIENT TTS] 이전 오디오 정지");
+        console.log("🔊 [CLIENT] 이전 오디오 정지");
         currentAudio.pause();
         currentAudio.currentTime = 0;
         currentAudio = null;
       }
     }
 
-    // 서버의 Edge TTS endpoint (/api/tts) 호출 함수
     function playAudioChunk(text, lang) {
       return new Promise((resolve) => {
         const cleaned = cleanPunctuation(text);
         if (!cleaned) {
-          console.warn("⚠️ [CLIENT TTS] 빈 텍스트 스킵");
           resolve();
           return;
         }
 
-        console.log(`🔊 [CLIENT TTS] 서버에 음성 요청: "${cleaned}" [언어: ${lang}]`);
+        console.log(`🔊 [CLIENT] TTS 재생 시작: "${cleaned}" (${lang})`);
 
-        const ttsApiUrl = `/api/tts?text=${encodeURIComponent(cleaned)}&lang=${lang}`;
-        currentAudio = new Audio(ttsApiUrl);
+        const ttsUrl = `/api/tts?text=${encodeURIComponent(cleaned)}&lang=${lang}`;
+        currentAudio = new Audio(ttsUrl);
 
-        let isResolved = false;
-        const safeResolve = () => {
-          if (!isResolved) {
-            isResolved = true;
+        let isDone = false;
+        const done = () => {
+          if (!isDone) {
+            isDone = true;
             resolve();
           }
         };
 
         const timeoutGuard = setTimeout(() => {
-          console.warn(`⏳ [CLIENT TTS] 오디오 재생 타임아웃 가드 발동: "${cleaned}"`);
-          safeResolve();
-        }, 8000);
+          console.warn(`⏳ [CLIENT] 타임아웃 방지 스킵: "${cleaned}"`);
+          done();
+        }, 10000);
 
         currentAudio.onended = () => {
           clearTimeout(timeoutGuard);
-          console.log(`✅ [CLIENT TTS] 재생 완료: "${cleaned}"`);
-          safeResolve();
+          console.log(`✅ [CLIENT] 재생 완료: "${cleaned}"`);
+          done();
         };
 
         currentAudio.onerror = (err) => {
           clearTimeout(timeoutGuard);
-          console.error(`❌ [CLIENT TTS] 서버 음성 스트리밍 에러:`, err);
-          safeResolve();
+          console.error(`❌ [CLIENT] 오디오 로드 에러:`, err);
+          done();
         };
 
-        currentAudio.play().catch((e) => {
+        currentAudio.play().catch((err) => {
           clearTimeout(timeoutGuard);
-          console.error(`❌ [CLIENT TTS] Audio play() 실패:`, e);
-          safeResolve();
+          console.error(`❌ [CLIENT] Audio play() 실패:`, err);
+          done();
         });
       });
     }
 
     async function speakText(text, callbackOnEnd) {
-      console.log(`\n========================================`);
-      console.log(`🔊 [TTS START] 문장 재생 요청: "${text}"`);
       stopAudio();
 
       const name = document.getElementById('userName').value.trim();
       const hasKoreanName = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
       const cleanFullText = text.replace(/<[^>]*>/g, '');
 
-      // 한글 이름 포함 시 분리 재생
+      // 한글 이름 포함 문장 분리 처리
       if (name && cleanFullText.includes(name) && hasKoreanName) {
-        console.log(`💡 [CLIENT TTS] 한글 이름 분리 순차 재생 시작 (이름: ${name})`);
+        console.log(`💡 [CLIENT] 한글 이름("${name}") 분리 연속 재생`);
         const parts = cleanFullText.split(name);
         const part1 = parts[0];
         const part2 = parts[1] || '';
@@ -281,18 +277,15 @@
         await playAudioChunk(name, 'ko');
         if (part2) await playAudioChunk(part2, 'en');
       } else {
-        console.log(`💡 [CLIENT TTS] 단일 영어 문장 재생`);
         await playAudioChunk(cleanFullText, 'en');
       }
 
-      console.log(`🎉 [TTS END] 문장 재생 완료`);
       if (callbackOnEnd) callbackOnEnd();
     }
 
     function speakCurrentCard() {
       const cards = getCardData();
       if (cards.length > 0 && cards[currentCardIndex]) {
-        console.log(`📌 [USER CLICK] 카드 ${cards[currentCardIndex].num}번 발음 듣기`);
         speakText(cards[currentCardIndex].speakEng);
       }
     }
@@ -301,15 +294,14 @@
       const cards = getCardData();
       if (!cards || cards.length === 0) return;
 
-      console.log(`▶️ [ALL SPEAK] 전체 연속 듣기 시작 (총 ${cards.length}개)`);
+      console.log(`▶️ [ALL SPEAK] 전체 연속 재생 시작`);
 
       for (let i = 0; i < cards.length; i++) {
-        console.log(`\n--- 연속 듣기 진행: (${i + 1}/${cards.length}) 카드 ${cards[i].num}번 ---`);
         await new Promise((resolve) => {
           speakText(cards[i].speakEng, resolve);
         });
       }
-      console.log(`🏁 [ALL SPEAK] 전체 연속 듣기 완료`);
+      console.log(`🏁 [ALL SPEAK] 전체 연속 재생 완료`);
     }
 
     // ==========================================
@@ -359,7 +351,6 @@
     }
 
     window.onload = async function() {
-      console.log("🚀 페이지 로드 완료. 발표자 이름 복원 및 DB 조회 실행");
       const savedName = localStorage.getItem('speakerName');
       if (savedName) {
         document.getElementById('userName').value = savedName;
@@ -396,7 +387,7 @@
           return;
         }
       } catch (err) {
-        console.warn('⚠️ DB Fetch 실패, 기본 샘플 카드로 대체합니다:', err);
+        console.warn('⚠️ DB Fetch 실패, 샘플 카드로 대체:', err);
         activeCardData = {
           v1: "the smartphone",
           v2: "Steve Jobs",
