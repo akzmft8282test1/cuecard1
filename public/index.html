@@ -189,31 +189,95 @@
     let currentCardIndex = 0;
     let isFlipped = false;
     let hideAllBlanksState = true;
-    const synth = window.speechSynthesis;
 
-    // 한국어 목소리를 완전히 거르고 영어 전용 목소리 선택하는 함수
-    function getEnglishVoice() {
-      if (!('speechSynthesis' in window)) return null;
-      const voices = synth.getVoices();
-      if (!voices || voices.length === 0) return null;
+    // ==========================================
+    // 🔊 TTS 엔진 로직 (완전 재설계)
+    // ==========================================
+    let englishVoice = null;
 
-      // 1순위: en-US 음성 중 한국어가 아닌 것
-      let found = voices.find(v => v.lang === 'en-US' && !v.lang.startsWith('ko'));
-      // 2순위: en으로 시작하는 음성 중 한국어가 아닌 것
-      if (!found) {
-        found = voices.find(v => v.lang.startsWith('en') && !v.lang.startsWith('ko'));
-      }
-      // 3순위: 이름에 US, English, Samantha, Zira, David, Alex 등이 포함된 음성
-      if (!found) {
-        found = voices.find(v => /English|US|United States|Samantha|Zira|David|Alex|Google US/i.test(v.name));
-      }
-      return found || null;
+    function initEnglishVoice() {
+      if (!('speechSynthesis' in window)) return;
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices || voices.length === 0) return;
+
+      // 순수 영어(en) Voice 필터링 (한국어 ko 완전 배제)
+      englishVoice = voices.find(v => v.lang === 'en-US' && !v.lang.startsWith('ko')) ||
+                     voices.find(v => v.lang.startsWith('en-') && !v.lang.startsWith('ko')) ||
+                     voices.find(v => v.lang.startsWith('en') && !v.lang.startsWith('ko')) ||
+                     voices.find(v => /Google US English|Samantha|Zira|David|Alex|Victoria/i.test(v.name));
     }
 
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => { getEnglishVoice(); };
+      initEnglishVoice();
+      window.speechSynthesis.onvoiceschanged = initEnglishVoice;
     }
 
+    function speakText(text) {
+      if (!('speechSynthesis' in window)) {
+        alert('이 브라우저는 음성 합성을 지원하지 않습니다.');
+        return;
+      }
+
+      window.speechSynthesis.cancel(); // 이전 음성 재생 즉시 정지
+
+      if (!englishVoice) {
+        initEnglishVoice();
+      }
+
+      // 점(.), 하이픈(-), 특수기호 무음 처리 및 정제
+      const cleanedText = text
+        .replace(/[-_]/g, ' ')
+        .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '')
+        .trim();
+
+      if (!cleanedText) return;
+
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.85;
+
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function speakCurrentCard() {
+      const cards = getCardData();
+      if (cards.length > 0) {
+        speakText(cards[currentCardIndex].speakEng);
+      }
+    }
+
+    function speakAll() {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+
+      const cards = getCardData();
+      if (!cards || cards.length === 0) return;
+
+      if (!englishVoice) initEnglishVoice();
+
+      cards.forEach(card => {
+        const cleanedText = card.speakEng
+          .replace(/[-_]/g, ' ')
+          .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '')
+          .trim();
+
+        if (cleanedText) {
+          const utterance = new SpeechSynthesisUtterance(cleanedText);
+          utterance.lang = 'en-US';
+          utterance.rate = 0.85;
+          if (englishVoice) utterance.voice = englishVoice;
+          window.speechSynthesis.speak(utterance);
+        }
+      });
+    }
+
+    // ==========================================
+    // 🃏 카운트 및 UI 데이터 로직 (기존 유지)
+    // ==========================================
     const numberWords = {
       0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine",
       10: "ten", 11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen",
@@ -481,42 +545,6 @@
         document.getElementById('viewBlank').classList.remove('hidden');
         document.getElementById('btnTabBlank').className = "flex-1 sm:flex-none px-3.5 py-2 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-sm";
       }
-    }
-
-    // 100% 영문 음성만 선택 및 특수기호 제거 재생 함수
-    function speakText(text) {
-      synth.cancel();
-
-      // 특수기호(점, 하이픈 등) 무음 처리
-      const cleaned = text
-        .replace(/[-_]/g, ' ')
-        .replace(/[.,/#!$%^&*;:{}=\`~()]/g, '');
-
-      if (!cleaned.trim()) return;
-
-      const utterance = new SpeechSynthesisUtterance(cleaned);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.85;
-
-      // 한국어를 정제한 pure 순수 영문 voice 강제 맵핑
-      const voice = getEnglishVoice();
-      if (voice) {
-        utterance.voice = voice;
-      }
-
-      synth.speak(utterance);
-    }
-
-    function speakCurrentCard() {
-      const cards = getCardData();
-      if (cards.length > 0) speakText(cards[currentCardIndex].speakEng);
-    }
-
-    function speakAll() {
-      synth.cancel();
-      getCardData().forEach(card => {
-        speakText(card.speakEng);
-      });
     }
 
     document.addEventListener('keydown', (e) => {
